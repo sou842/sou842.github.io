@@ -1,0 +1,493 @@
+@media screen and (min-width:0px) and (max-width:950px){
+
+nav{
+    padding: 10px 0px;
+}
+nav > div > h1{
+    font-size: 25px;
+}
+nav > div > a{
+    font-size: 13px
+}
+nav > div > button{
+    width: 70px;
+    height: 35px;
+    font-size: 12px;
+}
+.nav  div:nth-child(2){
+    width: 50%;
+    border: 1px solid green;
+}
+.intro > div{
+    margin-top: 0;
+    margin: auto;
+}
+.intro > div > h1{
+    font-size: 55px;
+}
+.intro > div > a > button{
+    margin-top: 2.5cm;
+    width: 300px;
+}
+.About > div:nth-child(1){
+    width: 35%;
+}
+.About > div:nth-child(2){
+    width: 55%;
+    padding: 15px;
+}
+.skills_list{
+    width: 90%;
+}
+.skills_list > div{
+    width: 95%;
+    margin: auto;
+}
+.project > h1{
+    font-size: 35px;
+}
+.project_item{
+    width: 93%;
+}
+.project_item_info p{
+    font-size: 14px;
+}
+.project_item_icon > div > img{
+    width: 40px;
+}
+.project_item_pic{
+    width: 50%;
+    height: 200px;
+}
+.project_item_info{
+    width: 50%;
+    padding: 15px;
+}
+
+#conteact_info > h1{
+    font-size: 35px;
+}
+.conteact_item{
+    width: 90%;
+}
+.fixed{
+    padding: 5px;
+    border: 0.7cm;
+}
+.fixed > a > img{
+    width: 50px;
+    margin: 10px 0;
+}
+.static_item:nth-child(3){
+    width: 80%;
+    margin: 25px auto;
+}
+}
+
+@media screen and (min-width:0px) and (max-width:750px){
+
+nav{
+    padding: 10px 20px;
+}
+nav > h1{
+    color: #333;
+    width: 100px;
+}
+nav > div > a{
+    display: none;
+}
+nav > div > button{
+    width: 70px;
+    height: 35px;
+    font-size: 12px;
+}
+nav > div > h1{
+    font-size: 35px;
+}
+nav > h1:nth-child(1){
+    display: block;
+    font-size: 35px;
+}
+.intro > div{
+    margin-top: 0;
+    margin: auto;
+}
+.intro > div > h1{
+    font-size: 52px;
+}
+.intro > div > a > button{
+    margin-top: 2.5cm;
+    width: 300px;
+}
+.About{
+    display: flex;
+    width: 95%;
+    /* border: 1px solid red; */
+}
+.skills_list{
+    width: 100%;
+}
+.skills_list > div img{
+    width: 30px;
+}
+.skills_list > div > div{
+    width: 75px;
+    height: 75px;
+}
+.project_item_pic{
+    width: 50%;
+    height: 170px;
+}
+.project_item_info{
+    width: 50%;
+}
+.project_item_icon > div{
+    margin: 20px 5px;
+}
+.project_item_icon > div > img{
+    width: 30px;
+}
+#conteact_info > div > p{
+    margin: 0 10px;
+    font-size: 14px;
+}
+.fixed{
+    bottom: 0.5cm;
+    padding: 5px;
+}
+.fixed > a > img{
+    width: 40px;
+    margin: 10px 0;
+}
+.static_item:nth-child(3){
+    width: 85%;
+    margin: 25px auto;
+}
+.static_item:nth-child(4){
+    width: 90%;
+}
+
+}
+
+@media screen and (min-width:0px) and (max-width:600px){
+
+nav > h1{
+    color: #333;
+    width: 90px;
+}
+.intro > div > h1{
+    font-size: 45px;
+    margin-left: 20px;
+}
+.intro > div > p{
+    font-size: 23px;
+    margin-left: 20px;
+    margin-top: 30px;
+}
+.intro > div > a > button{
+    margin-top: 3cm;
+    margin-left: 20px;
+}
+.skill > h1{
+    font-size: 35px;
+}
+.skills_list > div{
+    margin: 15px auto;
+}
+.About > div > p{
+    font-size: 13px;
+}
+.about_details > div > p{
+    font-size: 11px;
+}
+.About{
+    display: block;
+    margin-top: 10px;
+}
+.About > div:nth-child(1){
+    width: 75%;
+    margin: auto;
+}
+.About > div:nth-child(2){
+    width: 80%;
+    padding: 15px;
+    margin: auto;
+}
+.skills_list{
+    width: 95%;
+}
+.skills_list > div{
+    display: block;
+}
+.skills_list > div > div{
+    width: 70px;
+    height: 70px;
+    /* padding: 15px 5px -5px 5px; */
+    margin: 1px auto;
+}
+.skills_list > div img{
+    width: 30px;
+}
+.skills_list{
+    width: 95%;
+    display: flex;
+    /* border: 1px solid red; */
+
+}
+.skills_list > div{
+    display: block;
+}
+.skills_list > div:nth-child(1){
+    width: 100%;
+    height: 100%;
+    /* border: 1px solid blue; */
+    margin: auto;
+}
+.skills_list > div:nth-child(2){
+    width: 100%;
+    height: 100%;
+    /* border: 1px solid blue; */
+    margin: auto;
+}
+.skills_list > div:nth-child(1) > div:nth-last-child(1){
+    display: block;
+}
+.skills_list > div:nth-child(1) > div{
+    margin: 15px auto;
+}
+.skills_list > div:nth-child(2) > div{
+    margin: 15px auto;
+}
+.project_item{
+    display: block;
+}
+.project_item > div{
+    width: 98%;
+    margin: auto;
+}
+.project_item_pic{
+    height: 150px;
+}
+.project_item_info{
+    width: 100%;
+    padding: 7px;
+}
+.project_item_icon > div{
+    margin: 20px 5px;
+}
+.project_item_icon > div > img{
+    width: 30px;
+}
+.project_item:nth-child(3){
+    display: flex;
+    flex-direction: column-reverse;
+}
+.project_item_icon > div:nth-child(1){
+    font-size: 12px;
+    align-items: center;
+}
+#conteact_info > h1{
+    font-size: 30px;
+}
+#conteact_info > div > p{
+    margin: 0 10px;
+    font-size: 12px;
+}
+.conteact_item{
+    display: block;
+}
+.conteact_item > div{
+    width: 80%;
+    text-align: center;
+    margin: auto;
+}
+#conteact_info > div {
+    font-size: 12px;
+    margin: 10px auto;
+}
+#conteact_info{
+    width: 95%;
+}
+.conteact_item > div{
+    width: 95%;
+}
+#conteact_info > button{
+    width: 90%;
+}
+.fixed{
+    padding: 3px;
+    bottom: 0.5cm;
+}
+.fixed > a > img{
+    width: 40px;
+    margin: 7px 0;
+}
+}
+
+@media screen and (min-width:0px) and (max-width:450px){
+
+nav{
+    padding: 10px 10px;
+    display: flex;
+}
+nav > h1{
+    color: #333;
+    /* border: 1px solid red; */
+    width: auto;
+    /* margin-right: 10px; */
+}
+nav > div > h1{
+    font-size: 16px;
+}
+nav > div > a{
+    display: none;
+}
+nav > div > button{
+    width: 60px;
+    height: 30px;
+    font-size: 10px;
+}
+nav > div > h1{
+    font-size: 30px;
+}
+nav > h1:nth-child(1){
+    display: block;
+    font-size: 25px;
+}
+.intro > div > h1{
+    font-size: 40px;
+    margin-left: 20px;
+}
+.intro > div > p{
+    font-size: 16px;
+    margin-left: 20px;
+    margin-top: 30px;
+}
+.intro > div > a > button{
+    margin-top: 2.5cm;
+    margin-left: 20px;
+}
+
+.About{
+    margin-top: 1.3cm;
+}
+.About > div:nth-child(1){
+    width: 85%;
+    margin: auto;
+}
+.About > div:nth-child(2){
+    width: 90%;
+    padding: 15px;
+    margin: auto;
+}
+.About > div > h1{
+    font-size: 25px;
+}
+.skill > h1{
+    margin-top: 2.2cm;
+}
+.project_item > div {
+    padding: 0px auto;
+}
+.project_item > div{
+    width: 100%;
+    margin: auto;
+}
+.project_item_pic{
+    height: 125px;
+}
+.project_item_icon > div > img{
+    width: 25px;
+}
+.project_item_info > p{
+    font-size: 12px;
+}
+.project_item_icon > div:nth-child(1){
+    font-size: 11px;
+    align-items: center;
+}
+#conteact_info > div > p{
+    font-size: 10px;    
+}
+.static_item:nth-child(2) > img{
+    width: 90%;
+}
+.conteact_item{
+    width: 90%;
+}
+#conteact_info{
+    width: 90%;
+}
+.fixed{
+    padding: 3px;
+    bottom: 0.5cm;
+}
+.fixed > a > img{
+    width: 35px;
+    margin: 10px 0;
+}
+.side{
+    top: 1.4cm;
+}
+
+}
+
+@media screen and (min-width:0px) and (max-width:300px){
+
+nav{
+    padding: 10px 20px;
+}
+nav > div > a{
+    display: none;
+}
+nav > div > button{
+    width: 50px;
+    height: 25px;
+    font-size: 10px;
+}
+nav > div > h1{
+    font-size: 22px;
+}
+nav > h1:nth-child(1){
+    display: block;
+    font-size: 20px;
+}
+.intro > div > h1{
+    font-size: 30px;
+    margin-left: 20px;
+}
+.intro > div > p{
+    font-size: 12px;
+    margin-left: 20px;
+    margin-top: 30px;
+}
+.intro > div > a > button{
+    margin-top: 2.5cm;
+    margin-left: 20px;
+    width: 80%;
+    font-size: 13px;
+}
+.About{
+    display: block;
+}
+.About > div:nth-child(1){
+    width: 100%;
+    margin: auto;
+}
+.About > div:nth-child(2){
+    width: 100%;
+    padding: 15px;
+    margin: auto;
+}
+.About > div > h1{
+    text-align: center;
+    font-size: 20px;
+}
+.About > div > p{
+    font-size: 10px;
+}
+.about_details > div > p{
+    font-size: 5px;
+}
+
+}
