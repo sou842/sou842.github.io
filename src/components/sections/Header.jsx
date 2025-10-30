@@ -76,9 +76,6 @@ const Header = () => {
           <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="social-link">
             <i className="fab fa-linkedin"></i>
           </a>
-          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="social-link">
-            <i className="fab fa-twitter"></i>
-          </a>
         </div>
       </div>
     </header>

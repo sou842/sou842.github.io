@@ -13,7 +13,19 @@ const About = () => {
       <div className="container">
         <div className="row">
           <div className="about-col-1">
-            <img src={user} alt="Portrait of Sourav Samanta" />
+            <div className="about-photo">
+              <img src={user} alt="Portrait of Sourav Samanta" />
+              <a
+                href="https://sou842.github.io/static/media/Resume.021e0f32702288aeeddb.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="resume-overlay-btn"
+                aria-label="Open resume in a new tab"
+              >
+                <i className="fas fa-file-alt" aria-hidden="true"></i>
+                <span>Resume</span>
+              </a>
+            </div>
           </div>
           <div className="about-col-2">
             <h2 className="sub-title">About Me</h2>
@@ -22,16 +34,6 @@ const About = () => {
               applications across front-end and back-end. Passionate about modern frameworks,
               scalable architectures, and delivering high-quality solutions that drive impact.
             </p>
-
-            <a
-              href="https://sou842.github.io/static/media/Resume.021e0f32702288aeeddb.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn2"
-              style={{ marginTop: '20px' }}
-            >
-              Resume
-            </a>
 
             <div className="tab-titles">
               {aboutTabs?.map((tab) => (

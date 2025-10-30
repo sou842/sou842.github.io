@@ -2,12 +2,48 @@ import React, { useState } from 'react'
 
 const Contact = () => {
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSent(true)
-    e.target.reset()
-    setTimeout(() => setSent(false), 4000)
+    if (loading) return
+    setLoading(true)
+    setError('')
+
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const name = formData.get('name')
+    const email = formData.get('email')
+    const message = formData.get('message')
+
+    try {
+      const res = await fetch('https://formsubmit.co/ajax/saifactplanet@gmail.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          message,
+          _template: 'table',
+          subject: `Portfolio contact from ${name}`,
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to send message. Please try again later.')
+      const data = await res.json()
+      if (data?.success !== 'true' && data?.success !== true) {
+        throw new Error('Unable to send right now. Please try again later.')
+      }
+
+      setSent(true)
+      form.reset()
+      setTimeout(() => setSent(false), 4000)
+    } catch (err) {
+      setError(err?.message || 'Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
   return (
     <section id="contact" className="contact-section">
@@ -64,12 +100,12 @@ const Contact = () => {
 
           <div className="contact-right">
             <div className="form-card">
-              <form name="contact-form" onSubmit={handleSubmit}>
+              <form name="contact-form" onSubmit={handleSubmit} noValidate>
                 <label htmlFor="name" className="sr-only">Your Name</label>
                 <input
                   id="name"
                   type="text"
-                  name="Name"
+                  name="name"
                   placeholder="Your Name"
                   required
                   aria-label="Your Name"
@@ -79,7 +115,7 @@ const Contact = () => {
                 <input
                   id="email"
                   type="email"
-                  name="Email"
+                  name="email"
                   placeholder="Your Email"
                   required
                   aria-label="Your Email"
@@ -88,14 +124,19 @@ const Contact = () => {
                 <label htmlFor="message" className="sr-only">Your Message</label>
                 <textarea
                   id="message"
-                  name="Message"
+                  name="message"
                   rows="6"
                   placeholder="Tell me about your project..."
                   aria-label="Your Message"
                 ></textarea>
 
-                <button type="submit" className="btn btn2">Send Message</button>
+                <button type="submit" className="btn btn2" disabled={loading} aria-busy={loading}>
+                  {loading ? 'Sending…' : 'Send Message'}
+                </button>
               </form>
+              {error && (
+                <span role="alert" style={{ color: '#ff6b6b', marginTop: '8px', display: 'inline-block' }}>{error}</span>
+              )}
               {sent && (
                 <span id="msg" role="status">Thanks! I'll get back to you shortly.</span>
               )}
