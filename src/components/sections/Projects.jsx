@@ -29,18 +29,6 @@ const projectData = [
     isPrivate: true,
     requiresVPN: true
   },
-  {
-    id: 3,
-    image: work3,
-    title: "E-Commerce Platform",
-    description: "A full-stack e-commerce solution with secure payment processing, inventory management, and admin dashboard.",
-    alt: "E-Commerce Platform",
-    category: "Web App",
-    technologies: ["Vue.js", "Express", "PostgreSQL", "Stripe"],
-    liveUrl: "#",
-    githubUrl: "#",
-    isPrivate: false
-  }
 ];
 
 const Projects = () => {
