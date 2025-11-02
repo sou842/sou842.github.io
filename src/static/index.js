@@ -65,6 +65,7 @@ export const skillsGrouped = [
       { name: "SQL", level: "Intermediate" },
       { name: "NoSQL", level: "Intermediate" },
       { name: "DSA", level: "Advanced" },
+      { name: "AWS", level: "Intermediate" },
     ],
   },
   {
@@ -74,7 +75,6 @@ export const skillsGrouped = [
       { name: "GitHub", level: "Advanced" },
       { name: "GitLab", level: "Advanced" },
       { name: "NPM", level: "Advanced" },
-      { name: "AWS", level: "Intermediate" },
       { name: "Jira", level: "Intermediate" },
     ],
   },
@@ -83,7 +83,19 @@ export const skillsGrouped = [
     label: "Mobile",
     items: [
       { name: "React Native", level: "Advanced" },
+      { name: 'Expo', level: 'Advanced'},
+      { name: 'GlueStack', level: 'Intermediate'},
+      { name: "Native Base", level: "Intermediate"},
+    ],
+  },
+  {
+    id: "map",
+    label: "Map",
+    items: [
+      { name: "ArcGIS", level: "Advanced" },
       { name: "Native Maps", level: "Intermediate" },
+      { name: "Mapbox", level: "Intermediate" },
+      { name: "Google Maps", level: "Advanced" },
     ],
   },
 ];

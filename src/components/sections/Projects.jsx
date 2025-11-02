@@ -78,7 +78,7 @@ const Projects = () => {
         </div>
 
         <div className="work-list interactive-grid">
-          {filteredProjects.map((project) => (
+          {filteredProjects?.map((project) => (
             <article
               key={project.id}
               className="work tilt project-card"
