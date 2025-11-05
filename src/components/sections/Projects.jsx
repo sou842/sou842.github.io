@@ -1,17 +1,17 @@
 import React, { useState } from 'react'
 import therealfeel from '../../assets/therealfeel.png'
 import DYP from '../../assets/DYP.png'
-import work3 from '../../assets/work-3.png'
+import Translator from '../../assets/Translator.png'
 
 const projectData = [
   {
     id: 1,
     image: therealfeel,
     title: "The Real Feel",
-    description: "A comprehensive social media platform built with React and Node.js, featuring real-time messaging, content sharing, and user engagement tools.",
+    description: "An AI-powered feedback analysis platform that transforms user feedback into actionable insights. Built with Next.js, Redux, and TanStack Query for efficient data handling, featuring Mapbox integration for geolocation and visualization, and a responsive, accessible UI with Tailwind CSS and Headless UI.",
     alt: "The Real Feel Social Media App",
     category: "Web App",
-    technologies: ["Next.js", "Node.js", "MongoDB", "Socket.io"],
+    technologies: ["Next.js", "Tailwind", "TanStack", "Node.js", "Mapbox"],
     liveUrl: "https://www.therealfeel.ai/",
     githubUrl: "private",
     isPrivate: true
@@ -20,11 +20,24 @@ const projectData = [
     id: 2,
     image: DYP,
     title: "DYP",
-    description: "A modern music streaming application with advanced audio controls, playlist management, and social sharing features. Note: VPN required for access.",
+    description: "A healthcare web platform built with React, TypeScript, MobX, and Material UI, delivering an intuitive and efficient user experience. Optimized performance for large-scale healthcare data and led a development team to ensure scalability, maintainability, and alignment with long-term business goals.",
     alt: "DYP",
     category: "Web App",
-    technologies: ["React", "Firebase", "Spotify API"],
+    technologies: ["React", "TypeScript", "Mobx", "Material UI", "Scss"],
     liveUrl: "https://dyp2-sb-dev01.hhstechgroup.com/",
+    githubUrl: "private",
+    isPrivate: true,
+    requiresVPN: true
+  },
+  {
+    id: 3,
+    image: Translator,
+    title: "Transletor",
+    description: "A multi-language management system enabling seamless translation and localization across the DYP platform. Built with React.js, Redux, and Material UI for a scalable, responsive interface. Optimized performance for large datasets and led a team to integrate multilingual features while ensuring code quality and maintainability.",
+    alt: "Translator",
+    category: "Web App",
+    technologies: ["React", "TypeScript", "i18n", "Redux", "Material UI"],
+    liveUrl: "https://dyp2-sb-dev02.hhstechgroup.com/",
     githubUrl: "private",
     isPrivate: true,
     requiresVPN: true
@@ -126,7 +139,7 @@ const Projects = () => {
                 </div>
               </div>
 
-                <h3 className="project-title">{project.title}</h3>
+              <h3 className="project-title">{project.title}</h3>
               <div className="project-content">
                 <p className="project-description">{project.description}</p>
 
