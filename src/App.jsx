@@ -1,19 +1,24 @@
-import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import './styles/index.scss';
+import React from 'react'
+import './styles/index.scss'
 
-import Home from './components/pages/Home';
-import AllProjects from './components/pages/AllProjects';
+// Import components
+import Navbar from './components/sections/Navbar'
+import Header from './components/sections/Header'
+import About from './components/sections/About'
+import Skills from './components/sections/Skills'
+import Projects from './components/sections/Projects'
+import Contact from './components/sections/Contact'
 
 export default function App() {
+
   return (
-    <Router>
-      <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/projects" element={<AllProjects />} />
-        </Routes>
-      </main>
-    </Router>
-  );
+    <main>
+      <Navbar />
+      <Header />
+      <About />
+      <Skills />
+      <Projects />
+      <Contact />
+    </main>
+  )
 }

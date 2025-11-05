@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import therealfeel from '../../assets/therealfeel.png'
 import DYP from '../../assets/DYP.png'
 import Translator from '../../assets/Translator.png'
 import chatMenu from '../../assets/chat_menu.jpg'
 import chatMessage from '../../assets/chat_message.jpg'
-import { Link } from 'react-router-dom'
 
 const projectData = [
   {
@@ -229,10 +228,10 @@ const Projects = () => {
         </div>
 
         <div className="projects-cta">
-          <Link to="/projects" className="btn primary-btn">
+          <a href="#" className="btn primary-btn">
             <span>View All Projects</span>
             <i className="fas fa-arrow-right"></i>
-          </Link>
+          </a>
         </div>
       </div>
     </section>
