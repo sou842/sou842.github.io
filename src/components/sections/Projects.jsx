@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import therealfeel from '../../assets/therealfeel.png'
 import DYP from '../../assets/DYP.png'
 import Translator from '../../assets/Translator.png'
+import chatMenu from '../../assets/chat_menu.jpg'
+import chatMessage from '../../assets/chat_message.jpg'
 
 const projectData = [
   {
@@ -14,7 +16,8 @@ const projectData = [
     technologies: ["Next.js", "Tailwind", "TanStack", "Node.js", "Mapbox"],
     liveUrl: "https://www.therealfeel.ai/",
     githubUrl: "private",
-    isPrivate: true
+    isPrivate: true,
+    type: "web",
   },
   {
     id: 2,
@@ -27,7 +30,8 @@ const projectData = [
     liveUrl: "https://dyp2-sb-dev01.hhstechgroup.com/",
     githubUrl: "private",
     isPrivate: true,
-    requiresVPN: true
+    requiresVPN: true,
+    type: "web",
   },
   {
     id: 3,
@@ -40,17 +44,42 @@ const projectData = [
     liveUrl: "https://dyp2-sb-dev02.hhstechgroup.com/",
     githubUrl: "private",
     isPrivate: true,
-    requiresVPN: true
+    requiresVPN: true,
+    type: "web",
+  },
+  {
+    id: 4,
+    images: [chatMenu, chatMessage],
+    title: "Gossip",
+    description: "A real-time mobile chat application enabling users to message and interact seamlessly with friends. Built with React Native and Gluestack for a smooth, responsive UI, powered by Node.js, MongoDB, and Socket.IO for efficient real-time communication and scalable backend performance.",
+    alt: "Gossip Mobile Chat App",
+    category: "Mobile App",
+    technologies: ["React Native", "Gluestack", "Node.js", "MongoDB", "Socket.IO"],
+    liveUrl: "#",
+    githubUrl: "https://github.com/sou842/gossip",
+    isPrivate: false,
+    type: "mobile",
   },
 ];
 
 const Projects = () => {
   const [activeFilter, setActiveFilter] = useState('All')
+  const [currentImageIndex, setCurrentImageIndex] = useState({})
 
   const categories = ['All', ...new Set(projectData.map(project => project.category))]
   const filteredProjects = activeFilter === 'All'
     ? projectData
     : projectData.filter(project => project.category === activeFilter)
+
+  const handleImageNav = (projectId, direction, totalImages) => {
+    setCurrentImageIndex(prev => {
+      const current = prev[projectId] || 0
+      const newIndex = direction === 'next' 
+        ? (current + 1) % totalImages 
+        : (current - 1 + totalImages) % totalImages
+      return { ...prev, [projectId]: newIndex }
+    })
+  }
 
   const handleMouseMove = (e) => {
     const card = e.currentTarget
@@ -79,7 +108,7 @@ const Projects = () => {
         </div>
 
         <div className="project-filters">
-          {categories.map((category) => (
+          {categories?.map((category) => (
             <button
               key={category}
               className={`filter-btn ${activeFilter === category ? 'active' : ''}`}
@@ -94,13 +123,57 @@ const Projects = () => {
           {filteredProjects?.map((project) => (
             <article
               key={project.id}
-              className="work tilt project-card"
+              className={`work tilt project-card ${project.type}`}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             >
-              <div className="project-image-container">
-                <img src={project?.image} alt={project.alt} />
-                <div className="project-overlay">
+              <div className={`project-image-container ${project.type}`}>
+                {project.images ? (
+                  <>
+                    <img 
+                      src={project.images[currentImageIndex[project.id] || 0]} 
+                      alt={`${project.alt} - Screenshot ${(currentImageIndex[project.id] || 0) + 1}`} 
+                      className="project-image"
+                    />
+                    <div className="image-carousel-controls">
+                      <button 
+                        className="carousel-btn prev" 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleImageNav(project.id, 'prev', project.images.length)
+                        }}
+                        aria-label="Previous image"
+                      >
+                        <i className="fas fa-chevron-left"></i>
+                      </button>
+                      <div className="carousel-indicators">
+                        {project.images.map((_, index) => (
+                          <span 
+                            key={index} 
+                            className={`indicator ${(currentImageIndex[project.id] || 0) === index ? 'active' : ''}`}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setCurrentImageIndex(prev => ({ ...prev, [project.id]: index }))
+                            }}
+                          ></span>
+                        ))}
+                      </div>
+                      <button 
+                        className="carousel-btn next" 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleImageNav(project.id, 'next', project.images.length)
+                        }}
+                        aria-label="Next image"
+                      >
+                        <i className="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <img src={project?.image} alt={project.alt} className="project-image" />
+                )}
+                <div className={`project-overlay ${project.type}`}>
                   <div className="project-category">{project.category}</div>
 
                   <div className="project-links">
@@ -139,8 +212,8 @@ const Projects = () => {
                 </div>
               </div>
 
-              <h3 className="project-title">{project.title}</h3>
               <div className="project-content">
+              <h3 className="project-title">{project.title}</h3>
                 <p className="project-description">{project.description}</p>
 
                 <div className="project-technologies">
