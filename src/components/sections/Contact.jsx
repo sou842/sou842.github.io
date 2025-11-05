@@ -89,7 +89,7 @@ const Contact = () => {
             </div>
 
             <a
-              href="https://sou842.github.io/static/media/Resume.021e0f32702288aeeddb.pdf"
+              href="https://drive.google.com/uc?export=download&id=1QkaojjaE19q2KasFag9vbVyWSRCwKfm7"
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn2"
