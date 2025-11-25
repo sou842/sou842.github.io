@@ -1785,6 +1785,11 @@ nav {
     background: $color-accent;
     color: #ffffff;
     margin-top: 20px;
+
+    @media screen and (max-width: 600px) {
+        width: 100%;
+        text-align: center;
+    }
 }
 
 .form-card {
@@ -1874,6 +1879,10 @@ form .btn2 {
     display: flex;
     gap: 12px;
     margin-top: 18px;
+
+    @media screen and (max-width: 600px) {
+        justify-content: center;
+    }
 }
 
 .contact-social a {
@@ -1891,6 +1900,655 @@ form .btn2 {
     background: $color-accent-12a;
     color: $color-accent;
     transform: translateY(-2px);
+}
+
+/* Recommendations Section */
+#recommendations {
+    padding: 100px 0;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%);
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 30% 70%, rgba(255, 0, 79, 0.08) 0%, transparent 50%),
+            radial-gradient(circle at 70% 30%, rgba(255, 0, 79, 0.05) 0%, transparent 50%);
+        pointer-events: none;
+    }
+}
+
+.recommendations-section {
+    position: relative;
+    z-index: 1;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 24px;
+    margin-top: 50px;
+
+    @media (max-width: 768px) {
+        display: none; /* Hide grid on mobile, show slider instead */
+    }
+}
+
+.recommendation-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(20px);
+    opacity: 0;
+    transform: translateY(30px);
+    box-shadow: 
+        0 6px 24px rgba(0, 0, 0, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            $color-accent 20%, 
+            #ff6b6b 50%, 
+            $color-accent 80%, 
+            transparent 100%);
+        opacity: 0.6;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: -100px;
+        right: -100px;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255, 0, 79, 0.03) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+        pointer-events: none;
+    }
+
+    &:hover {
+        transform: translateY(-12px);
+        border-color: rgba(255, 0, 79, 0.25);
+        box-shadow: 
+            0 25px 50px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+            0 0 40px rgba(255, 0, 79, 0.08);
+
+        &::after {
+            opacity: 1;
+        }
+
+        .avatar {
+            transform: scale(1.05);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .linkedin-badge {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .quote-icon {
+            transform: scale(1.1);
+            opacity: 0.5;
+        }
+    }
+
+    &.visible {
+        opacity: 1;
+        transform: translateY(0);
+        animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--delay) both;
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0%, 100% {
+        background-position: -200% 0;
+    }
+    50% {
+        background-position: 200% 0;
+    }
+}
+
+.recommendation-header {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 18px;
+    align-items: flex-start;
+}
+
+.avatar-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent, rgba(255, 255, 255, 0.05));
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    &:hover::before {
+        opacity: 1;
+    }
+}
+
+.linkedin-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(135deg, #0077b5 0%, #005885 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    border: 2px solid rgba(0, 0, 0, 0.9);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 3px 10px rgba(0, 119, 181, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    z-index: 2;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent);
+        z-index: -1;
+    }
+}
+
+.recommender-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recommender-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: $color-text-heading;
+    margin: 0 0 6px 0;
+    line-height: 1.3;
+    background: linear-gradient(135deg, $color-text-heading 0%, rgba(255, 255, 255, 0.8) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.recommender-title {
+    font-size: 13px;
+    color: $color-text-soft;
+    line-height: 1.4;
+    margin: 0 0 8px 0;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.recommendation-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+
+    .relationship {
+        color: $color-accent;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        &::before {
+            content: '•';
+            color: $color-accent;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+    }
+
+    .date {
+        color: $color-text-muted;
+        font-size: 11px;
+        opacity: 0.7;
+        font-weight: 400;
+    }
+}
+
+.recommendation-content {
+    position: relative;
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+}
+
+.quote-icon {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, $color-accent 0%, #ff6b6b 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: white;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 4px 15px rgba(255, 0, 79, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    z-index: 1;
+    opacity: 0.4;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, rgba(255, 255, 255, 0.15), transparent);
+        z-index: -1;
+    }
+}
+
+.recommendation-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: $color-text-heading;
+    margin: 0;
+    font-style: italic;
+    position: relative;
+    padding-top: 4px;
+    text-align: justify;
+    font-weight: 400;
+
+    &::before {
+        content: '"';
+        position: absolute;
+        top: -6px;
+        left: -3px;
+        font-size: 36px;
+        color: $color-accent;
+        opacity: 0.06;
+        font-family: Georgia, serif;
+        line-height: 1;
+        font-weight: 700;
+    }
+
+    &::after {
+        content: '"';
+        position: absolute;
+        bottom: -14px;
+        right: 6px;
+        font-size: 36px;
+        color: $color-accent;
+        opacity: 0.06;
+        font-family: Georgia, serif;
+        line-height: 1;
+        font-weight: 700;
+    }
+}
+
+.recommendation-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 60px;
+        height: 1px;
+        background: linear-gradient(90deg, $color-accent 0%, rgba(255, 0, 79, 0.3) 70%, transparent 100%);
+    }
+}
+
+.platform-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: $color-text-muted;
+    background: linear-gradient(135deg, rgba(0, 119, 181, 0.08) 0%, rgba(0, 119, 181, 0.03) 100%);
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 119, 181, 0.15);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+
+    i {
+        color: #0077b5;
+        font-size: 14px;
+    }
+
+    &:hover {
+        background: linear-gradient(135deg, rgba(0, 119, 181, 0.12) 0%, rgba(0, 119, 181, 0.05) 100%);
+        border-color: rgba(0, 119, 181, 0.25);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0, 119, 181, 0.12);
+    }
+}
+
+.recommendations-cta {
+    text-align: center;
+    margin-top: 60px;
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 32px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        &:hover::before {
+            left: 100%;
+        }
+
+        &.primary-btn {
+            background: linear-gradient(135deg, $color-accent 0%, #e00046 100%);
+            color: white;
+            box-shadow: 0 8px 25px rgba(255, 0, 79, 0.3);
+
+            &:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 12px 35px rgba(255, 0, 79, 0.4);
+            }
+
+            &:active {
+                transform: translateY(-1px);
+            }
+        }
+
+        i:first-child {
+            font-size: 18px;
+        }
+
+        i:last-child {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+    }
+}
+
+/* Mobile Slider Styles */
+.recommendations-slider {
+    position: relative;
+    margin-top: 40px;
+    
+    @media (min-width: 769px) {
+        display: none; /* Hide slider on desktop, show grid instead */
+    }
+}
+
+.slider-container {
+    overflow: hidden;
+    border-radius: 16px;
+    position: relative;
+}
+
+.slider-track {
+    display: flex;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.slider-card {
+    flex: 0 0 100%;
+    width: 100%;
+    margin: 0;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.slider-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding: 0 10px;
+}
+
+.slider-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: $color-text-heading;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    font-size: 16px;
+
+    &:hover {
+        background: linear-gradient(135deg, $color-accent 0%, #ff6b6b 100%);
+        border-color: $color-accent;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(255, 0, 79, 0.3);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
+.slider-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.slider-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: scale(1.2);
+    }
+
+    &.active {
+        width: 24px;
+        border-radius: 12px;
+        background: $color-accent;
+        box-shadow: 0 0 10px rgba(255, 0, 79, 0.4);
+    }
+}
+
+.slider-counter {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 14px;
+    color: $color-text-muted;
+    font-weight: 500;
+}
+
+/* Responsive Design for Recommendations */
+@media (max-width: 768px) {
+    #recommendations {
+        padding: 60px 0;
+    }
+
+    .recommendations-grid {
+        display: none; /* Hide grid on mobile, show slider instead */
+    }
+
+    .recommendation-card {
+        padding: 20px;
+        border-radius: 14px;
+
+        &:hover {
+            transform: translateY(-6px);
+        }
+    }
+
+    .recommendation-header {
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 15px;
+    }
+
+    .linkedin-badge {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+        bottom: -2px;
+        right: -2px;
+    }
+
+    .recommender-name {
+        font-size: 16px;
+    }
+
+    .recommender-title {
+        font-size: 12px;
+    }
+
+    .recommendation-content {
+        padding: 16px 18px;
+        margin-bottom: 18px;
+    }
+
+    .quote-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+        top: -8px;
+        left: 14px;
+    }
+
+    .recommendation-text {
+        font-size: 13px;
+        line-height: 1.5;
+        padding-top: 3px;
+
+        &::before {
+            font-size: 32px;
+            top: -4px;
+        }
+
+        &::after {
+            font-size: 32px;
+            bottom: -12px;
+        }
+    }
+
+    .recommendation-footer {
+        padding-top: 16px;
+
+        &::before {
+            width: 60px;
+        }
+    }
+
+    .platform-info {
+        font-size: 12px;
+        padding: 6px 12px;
+        gap: 8px;
+
+        i {
+            font-size: 14px;
+        }
+    }
+
+    .recommendations-cta .btn {
+        padding: 14px 24px;
+        font-size: 15px;
+        gap: 10px;
+    }
 }
 
 /* All Projects Page Styles */

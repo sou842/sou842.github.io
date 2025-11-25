@@ -83,9 +83,6 @@ const Contact = () => {
               <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn Profile">
                 <i className="fab fa-linkedin" />
               </a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter Profile">
-                <i className="fab fa-twitter" />
-              </a>
             </div>
 
             <a

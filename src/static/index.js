@@ -134,3 +134,36 @@ export const aboutTabs = [
     ],
   },
 ];
+
+export const recommendations = [
+  {
+    id: 1,
+    name: "Sonu Shettiyar",
+    title: "Brand Evangelist @ Masai | Building Price Perfect AI | Ex-Accelgrowth",
+    relationship: "Studied together at Masai School",
+    date: "November 8, 2025",
+    content: "Sourav always stood out as one of the sharpest minds in the room. His problem-solving skills and coding abilities are exceptional, and he consistently delivered elegant solutions that impressed everyone. What truly sets him apart is his curiosity, drive for improvement, and refusal to settle for average. His level of maturity and technical depth at a young age is inspiring. Any team would be fortunate to have someone with his talent, focus, and positive attitude.",
+    avatar: "SS",
+    color: "#ff6b6b"
+  },
+  {
+    id: 2,
+    name: "Manoj Kumar Nishad",
+    title: "Senior Frontend Developer – React.js, Next.js, TypeScript, Redux Toolkit, Tailwind CSS",
+    relationship: "Worked together on the same team",
+    date: "November 8, 2025",
+    content: "I had the pleasure of working with Sourav Samanta, a dedicated and talented frontend developer. He is passionate about creating innovative solutions and consistently delivers high-quality work. A great team player and a true asset to any project.",
+    avatar: "MN",
+    color: "#4ecdc4"
+  },
+  {
+    id: 3,
+    name: "Sagar Eknath Bangade",
+    title: "Software Engineer @ InspironLabs | GenAI | MERN | Java Spring Boot | React Native",
+    relationship: "Reported directly to Sourav",
+    date: "November 7, 2025",
+    content: "Working closely with Sourav was a great experience. He is one of the most reliable and composed people I've worked with. Always focused, quick to help, and never afraid to tackle tough problems. A solid teammate and a great person to have on any project.",
+    avatar: "SB",
+    color: "#45b7d1"
+  }
+];

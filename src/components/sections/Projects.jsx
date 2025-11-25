@@ -227,12 +227,12 @@ const Projects = () => {
           ))}
         </div>
 
-        <div className="projects-cta">
+        {/* <div className="projects-cta">
           <a href="#" className="btn primary-btn">
             <span>View All Projects</span>
             <i className="fas fa-arrow-right"></i>
           </a>
-        </div>
+        </div> */}
       </div>
     </section>
   )
