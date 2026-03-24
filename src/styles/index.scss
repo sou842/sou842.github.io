@@ -47,6 +47,7 @@ body {
     height: 100%;
     position: relative;
     z-index: 1;
+    margin: auto;
 
     @media (max-width: 768px) {
         padding: 100px 15px;
