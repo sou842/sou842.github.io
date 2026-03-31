@@ -83,9 +83,9 @@ export const skillsGrouped = [
     label: "Mobile",
     items: [
       { name: "React Native", level: "Advanced" },
-      { name: 'Expo', level: 'Advanced'},
-      { name: 'GlueStack', level: 'Intermediate'},
-      { name: "Native Base", level: "Intermediate"},
+      { name: 'Expo', level: 'Advanced' },
+      { name: 'GlueStack', level: 'Intermediate' },
+      { name: "Native Base", level: "Intermediate" },
     ],
   },
   {
@@ -106,16 +106,27 @@ export const aboutTabs = [
     label: "Experience",
     items: [
       {
-        period: "Nov 2023 - Present",
+        period: "Jan 2026 - Present",
         title: "Full Stack Developer",
-        organization: "Inspiron Labs",
-        location: "Bangalore, Karnataka",
+        organization: "100x Bot by Y Combinator",
+        location: "Bengaluru, Karnataka",
         highlights: [
-          "Built end-to-end product features from backend logic to performant front-end UI.",
-          "Scaled pricing modules to handle real-time optimization signals.",
-          "Developed with React, Next.js, Core JavaScript, and Node.js ensuring reliability.",
-          "Led key features, made architectural decisions, and mentored junior developers.",
-          "Improved team efficiency through best practices in coding, testing, and deployment.",
+          "Developed a Chrome-based AI browser automation tool to handle scraping, form filling, and workflow execution.",
+          "Implemented user behavior learning and memory-based task optimization for smarter, adaptive automation.",
+          "Built reusable automation workflows to significantly reduce repetitive manual effort.",
+        ],
+      },
+      {
+        period: "Nov 2023 - Jan 2026",
+        title: "Full Stack Developer",
+        organization: "InspironLabs Software Systems Private Limited",
+        location: "Bengaluru, Karnataka",
+        highlights: [
+          "Developed a healthcare web platform (Discover Your Provider) using React, TypeScript, MobX, and Material UI, optimizing performance for large-scale data.",
+          "Built a multi-language localization system (DYP Translator) with i18n, React, Redux, and RTK Query, optimizing for large datasets.",
+          "Created an AI-driven feedback analysis platform (The Real Feel) processing 10,000+ responses, reducing analysis time by 75% using Next.js and TanStack Query.",
+          "Integrated Mapbox for geolocation visualization and crafted responsive, accessible UIs with Tailwind CSS and SCSS.",
+          "Led development teams across projects, driving architectural decisions, technical planning, code quality, and mentoring.",
         ],
       },
     ],

@@ -16,7 +16,7 @@ const About = () => {
             <div className="about-photo">
               <img src={user} alt="Portrait of Sourav Samanta" />
               <a
-                href="https://drive.google.com/uc?export=download&id=1QkaojjaE19q2KasFag9vbVyWSRCwKfm7"
+                href='https://drive.google.com/file/d/146f0cpJf8NSpoJd16muhMbNFDU5VMOPo/view?usp=sharing'
                 target="_blank"
                 rel="noopener noreferrer"
                 className="resume-overlay-btn"
