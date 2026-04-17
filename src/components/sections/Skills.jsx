@@ -3,8 +3,7 @@ import { skillsGrouped } from '../../static';
 
 const Skills = () => {
   const [activeGroup, setActiveGroup] = useState('all')
-  const [viewMode, setViewMode] = useState('cards') // 'cards' | 'bars'
-
+  const [viewMode, setViewMode] = useState('cards')
   const groups = [{ id: 'all', label: 'All' }, ...skillsGrouped.map(g => ({ id: g.id, label: g.label }))]
 
   const allItems = useMemo(() => skillsGrouped.flatMap(g => g.items.map(i => ({ ...i, group: g.id }))), [])
