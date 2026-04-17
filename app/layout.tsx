@@ -21,9 +21,38 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'COMPUTE - AI Agents for Distributed Computing',
-  description: 'Deploy autonomous AI agents on distributed infrastructure. Offload complex tasks to intelligent workers that run 24/7.',
-  generator: 'v0.app',
+  title: 'Sourav Samanta | Full Stack Developer Portfolio',
+  description: 'Full Stack Developer specializing in Node.js, React, and scalable web architectures. Explore my projects and professional experience.',
+  generator: 'Next.js',
+  keywords: ['Sourav Samanta', 'Full Stack Developer', 'React Developer', 'Node.js Developer', 'TypeScript', 'Bengaluru Developer'],
+  authors: [{ name: 'Sourav Samanta' }],
+  creator: 'Sourav Samanta',
+  metadataBase: new URL('https://sou842.github.io'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Sourav Samanta | Full Stack Developer',
+    description: 'I design and build fast, accessible web experiences with modern stacks.',
+    url: 'https://sou842.github.io',
+    siteName: 'Sourav Samanta Portfolio',
+    images: [
+      {
+        url: '/placeholder-logo.png', // Fallback to placeholder if no specific OG image
+        width: 1200,
+        height: 630,
+        alt: 'Sourav Samanta Portfolio',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Sourav Samanta | Full Stack Developer',
+    description: 'I design and build fast, accessible web experiences with modern stacks.',
+    images: ['/placeholder-logo.png'],
+  },
   icons: {
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
@@ -42,6 +71,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Person",
+              "name": "Sourav Samanta",
+              "url": "https://sou842.github.io",
+              "jobTitle": "Full Stack Developer",
+              "sameAs": [
+                "https://github.com/sou842",
+                "https://www.linkedin.com/in/codebysourav/"
+              ],
+              "description": "Full Stack Developer specializing in Node.js, React, and scalable web architectures."
+            })
+          }}
+        />
         {children}
         <Analytics />
       </body>

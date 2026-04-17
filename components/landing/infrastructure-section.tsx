@@ -71,7 +71,7 @@ export function InfrastructureSection() {
             }`}>
               <img
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/world-3i68QNWJwmO7W19ztZWbevAwJQHzYL.png"
-                alt="Global network sphere"
+                alt="Global tech stack and network connectivity visualization"
                 className="w-full h-full object-contain object-center"
               />
             </div>

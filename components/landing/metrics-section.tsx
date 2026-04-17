@@ -272,8 +272,7 @@ export function MetricsSection() {
         }`}>
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/real-time-graph-INFmn3u0MlUwvNPynoIhwxtPaPjxM5.png"
-            alt=""
-            aria-hidden="true"
+            alt="Real-time agent performance and execution metrics graph"
             className="w-full h-auto object-cover"
           />
         </div>
