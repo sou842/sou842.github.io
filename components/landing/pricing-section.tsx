@@ -95,7 +95,7 @@ export function PricingSection() {
               isVisible ? "opacity-100" : "opacity-0"
             }`}>
               <img
-                src="/images/whale.png"
+                src="/images/whale.webp"
                 alt="Organic whale"
                 className="w-full h-full object-contain object-center"
               />
