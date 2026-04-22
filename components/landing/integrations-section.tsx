@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { portfolio } from "@/lib/portfolio";
 import { ExternalLink, Code2, Smartphone, Globe } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const projectIcons: Record<string, React.ReactNode> = {
   "WEB APP": <Globe className="w-6 h-6" />,
@@ -14,7 +15,7 @@ const projects = portfolio.projects;
 export function IntegrationsSection() {
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -85,11 +86,13 @@ export function IntegrationsSection() {
                 transitionDelay: `${index * 100 + 300}ms`,
               }}
               onMouseEnter={(e) => {
+                if (isMobile) return;
                 setHoveredIndex(index);
                 const rect = e.currentTarget.getBoundingClientRect();
                 setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
               }}
               onMouseMove={(e) => {
+                if (isMobile) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
               }}

@@ -62,7 +62,8 @@ function ParticleVisualization() {
     canvas.addEventListener("mousemove", handleMouseMove);
 
     // Generate stable particle positions
-    const COUNT = 70;
+    const isMobile = window.innerWidth < 768;
+    const COUNT = isMobile ? 30 : 70;
     const particles = Array.from({ length: COUNT }, (_, i) => {
       const seed = i * 1.618;
       return {

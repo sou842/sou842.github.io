@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { portfolio } from "@/lib/portfolio";
 import { SplineScene } from "../ui/spline-scene";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const words = ["Node.js", "React", "Scalable", "Fast"];
 
@@ -80,6 +81,8 @@ export function HeroSection() {
     setIsVisible(true);
   }, []);
 
+  const isMobile = useIsMobile();
+
   useEffect(() => {
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % words.length);
@@ -89,14 +92,16 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-screen flex flex-col justify-center items-start overflow-hidden bg-black">
-      {/* Background 3D Scene */}
+      {/* Background 3D Scene - Hidden on mobile for performance */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-y-0 right-0 w-full lg:w-[60%] xl:w-[55%] h-full opacity-80">
-          <SplineScene
-            scene="https://prod.spline.design/UbM7F-HZcyTbZ4y3/scene.splinecode"
-            className="w-full h-full"
-          />
-        </div>
+        {!isMobile && (
+          <div className="absolute inset-y-0 right-0 w-full lg:w-[60%] xl:w-[55%] h-full opacity-80">
+            <SplineScene
+              scene="https://prod.spline.design/UbM7F-HZcyTbZ4y3/scene.splinecode"
+              className="w-full h-full"
+            />
+          </div>
+        )}
         
         {/* Gradients to blend and ensure readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
