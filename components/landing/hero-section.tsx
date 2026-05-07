@@ -93,7 +93,7 @@ export function HeroSection() {
   return (
     <section className="relative min-h-screen flex flex-col justify-center items-start overflow-hidden bg-black">
       {/* Background 3D Scene - Hidden on mobile for performance */}
-      <div className="absolute inset-0 z-0">
+      {/* <div className="absolute inset-0 z-0">
         {!isMobile && (
           <div className="absolute inset-y-0 right-0 w-full lg:w-[60%] xl:w-[55%] h-full opacity-80">
             <SplineScene
@@ -103,10 +103,9 @@ export function HeroSection() {
           </div>
         )}
         
-        {/* Gradients to blend and ensure readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80" />
-      </div>
+      </div> */}
 
       {/* Subtle grid lines */}
       <div className="absolute inset-0 z-[2] overflow-hidden pointer-events-none opacity-20">

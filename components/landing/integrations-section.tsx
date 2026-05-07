@@ -15,6 +15,7 @@ const projects = portfolio.projects;
 export function IntegrationsSection() {
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLElement>(null);
 
