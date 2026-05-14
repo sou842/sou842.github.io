@@ -1,50 +1,60 @@
 "use client";
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import type { FileUIPart, UIMessage } from "ai";
-import {
-  CheckIcon,
-  Copy,
-  Globe,
-  Menu,
-  PanelLeftOpen,
-  RotateCcw,
-  ThumbsDown,
-  ThumbsUp,
-  User,
-} from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { Sidebar } from "@/components/ai/sidebar";
 import { ChatInput, mistralModels } from "@/components/ai/chat-input";
-import { MessageList, getMessageText } from "@/components/ai/message-list";
+import { MessageList } from "@/components/ai/message-list";
 import { EmptyState } from "@/components/ai/empty-state";
+import {
+  createEmptyChat,
+  deriveChatTitle,
+  loadStoredChats,
+  saveStoredChats,
+  type StoredChat,
+} from "@/lib/chat-storage";
+import { addMemory, getEnabledMemoriesForPrompt, inferMemoryCategory, type MemoryCategory } from "@/lib/memory-storage";
 
-const STORAGE_KEY = "jarvis-chat-history-v1";
-
-export type StoredChat = {
-  id: string;
-  title: string;
-  updatedAt: number;
-  messages: UIMessage[];
+type SaveMemoryToolOutput = {
+  action: "save_memory";
+  memory: {
+    title: string;
+    content: string;
+    category: MemoryCategory;
+    tags: string[];
+  };
+  status: "ready_for_client_persist";
 };
 
-const deriveTitle = (messages: UIMessage[]) => {
-  const firstUser = messages.find((m) => m.role === "user");
-  const text = firstUser ? getMessageText(firstUser).trim() : "";
-  return text ? text.slice(0, 44) : "New Chat";
-};
+const getSaveMemoryToolOutputs = (message: { parts?: unknown[] }) =>
+  (message.parts ?? []).flatMap((part) => {
+    const toolPart = part as {
+      type?: string;
+      state?: string;
+      toolCallId?: string;
+      output?: unknown;
+    };
 
-const createEmptyChat = (): StoredChat => ({
-  id: crypto.randomUUID(),
-  messages: [],
-  title: "New Chat",
-  updatedAt: Date.now(),
-});
+    if (toolPart.type !== "tool-saveMemory" || toolPart.state !== "output-available") {
+      return [];
+    }
+
+    const output = toolPart.output as Partial<SaveMemoryToolOutput> | undefined;
+    if (output?.action !== "save_memory" || output.status !== "ready_for_client_persist" || !output.memory?.content) {
+      return [];
+    }
+
+    return [{ toolCallId: toolPart.toolCallId ?? output.memory.content, output: output as SaveMemoryToolOutput }];
+  });
 
 export default function AIPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef(false);
   const [input, setInput] = useState("");
@@ -55,8 +65,26 @@ export default function AIPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [chats, setChats] = useState<StoredChat[]>([]);
   const [activeChatId, setActiveChatId] = useState("");
+  const persistedToolCallsRef = useRef(new Set<string>());
 
   const { messages, sendMessage, status, regenerate, setMessages } = useChat({
+    onFinish: ({ message }) => {
+      for (const { toolCallId, output } of getSaveMemoryToolOutputs(message)) {
+        if (persistedToolCallsRef.current.has(toolCallId)) {
+          continue;
+        }
+
+        persistedToolCallsRef.current.add(toolCallId);
+        addMemory({
+          title: output.memory.title,
+          content: output.memory.content,
+          category: output.memory.category,
+          source: "chat",
+          tags: [...new Set([...output.memory.tags, "chat", "tool"])],
+        });
+        toast.success("Saved to memory.");
+      }
+    },
     onError: (err) => {
       console.error("Chat error:", err);
       toast.error("Chat request failed. Please try again.");
@@ -66,37 +94,27 @@ export default function AIPage() {
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
+    const parsed = loadStoredChats();
+    if (parsed.length === 0) {
       const initial = createEmptyChat();
       setChats([initial]);
       setActiveChatId(initial.id);
       setMessages(initial.messages);
       return;
     }
-    try {
-      const parsed = JSON.parse(raw) as StoredChat[];
-      if (parsed.length === 0) {
-        const initial = createEmptyChat();
-        setChats([initial]);
-        setActiveChatId(initial.id);
-        setMessages(initial.messages);
-        return;
-      }
-      setChats(parsed);
-      setActiveChatId(parsed[0].id);
-      setMessages(parsed[0].messages);
-    } catch {
-      const initial = createEmptyChat();
-      setChats([initial]);
-      setActiveChatId(initial.id);
-      setMessages(initial.messages);
-    }
-  }, [setMessages]);
+
+    setChats(parsed);
+    
+    const q = searchParams.get("q");
+    const initial = parsed.find((c) => c.id === q) || parsed[0];
+    
+    setActiveChatId(initial.id);
+    setMessages(initial.messages);
+  }, [setMessages, searchParams]);
 
   useEffect(() => {
     if (chats.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+      saveStoredChats(chats);
     }
   }, [chats]);
 
@@ -108,7 +126,7 @@ export default function AIPage() {
           ? {
             ...chat,
             messages,
-            title: deriveTitle(messages),
+            title: deriveChatTitle(messages),
             updatedAt: Date.now(),
           }
           : chat
@@ -158,6 +176,7 @@ export default function AIPage() {
     setActiveChatId(next.id);
     setInput("");
     setMessages([]);
+    router.replace(`/ai?q=${next.id}`);
   };
 
   const removeChat = (id: string) => {
@@ -187,6 +206,7 @@ export default function AIPage() {
     }
     setActiveChatId(id);
     setMobileSidebarOpen(false);
+    router.replace(`/ai?q=${id}`);
   };
 
   const copyToClipboard = (text: string) => {
@@ -194,6 +214,45 @@ export default function AIPage() {
       .writeText(text)
       .then(() => toast.success("Copied to clipboard"))
       .catch(() => toast.error("Unable to copy"));
+  };
+
+  const sendMessageWithMemory = async (
+    message: Parameters<typeof sendMessage>[0],
+    options?: Parameters<typeof sendMessage>[1]
+  ) => {
+    await sendMessage(message, {
+      ...options,
+      body: {
+        ...options?.body,
+        memories: getEnabledMemoriesForPrompt(),
+      },
+    });
+  };
+
+  const regenerateWithMemory = (options?: Parameters<typeof regenerate>[0]) => {
+    regenerate({
+      ...options,
+      body: {
+        ...options?.body,
+        memories: getEnabledMemoriesForPrompt(),
+      },
+    });
+  };
+
+  const saveMessageToMemory = (text: string) => {
+    const content = text.trim();
+    if (!content) {
+      toast.error("Nothing to remember in this message.");
+      return;
+    }
+
+    addMemory({
+      content,
+      category: inferMemoryCategory(content),
+      source: "chat",
+      tags: ["chat"],
+    });
+    toast.success("Saved to memory.");
   };
 
   return (
@@ -255,7 +314,7 @@ export default function AIPage() {
                 <EmptyState
                   input={input}
                   setInput={setInput}
-                  sendMessage={sendMessage}
+                  sendMessage={sendMessageWithMemory}
                   selectedModel={selectedModel}
                 />
               ) : (
@@ -263,7 +322,8 @@ export default function AIPage() {
                   messages={messages}
                   isLoading={isLoading}
                   copyToClipboard={copyToClipboard}
-                  regenerate={regenerate}
+                  onSaveMemory={saveMessageToMemory}
+                  regenerate={regenerateWithMemory}
                   selectedModel={selectedModel}
                 />
               )}
@@ -276,7 +336,7 @@ export default function AIPage() {
               input={input}
               setInput={setInput}
               isLoading={isLoading}
-              sendMessage={sendMessage}
+              sendMessage={sendMessageWithMemory}
               selectedModel={selectedModel}
               setSelectedModel={setSelectedModel}
               selectedModelData={selectedModelData}

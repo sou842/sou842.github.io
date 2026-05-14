@@ -14,7 +14,9 @@ import {
   SquarePlus,
   Trash2
 } from "lucide-react";
-import { StoredChat } from "@/app/ai/page";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import type { StoredChat } from "@/lib/chat-storage";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -42,6 +44,15 @@ export function Sidebar({
   onSelectChat,
 }: SidebarProps) {
   const isCollapsed = !sidebarOpen;
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleNewChat = () => {
+    createNewChat();
+    if (pathname !== "/ai") {
+      router.push("/ai");
+    }
+  };
 
   return (
     <>
@@ -95,7 +106,7 @@ export function Sidebar({
           <div className={`space-y-1 ${isCollapsed ? 'w-full flex flex-col items-center' : 'w-full'}`}>
             {!isCollapsed && <div className="px-3 py-2 text-xs font-medium text-white/20">Workspace</div>}
             <button
-              onClick={createNewChat}
+              onClick={handleNewChat}
               className={`flex items-center transition-all group ${
                 isCollapsed 
                   ? "w-10 h-10 justify-center rounded-xl bg-white/5 hover:bg-white/10" 
@@ -105,7 +116,13 @@ export function Sidebar({
               <SquarePlus size={18} className="text-white/40 group-hover:text-white transition-colors shrink-0" />
               {!isCollapsed && <span>New Chat</span>}
             </button>
-            <SidebarNavItem icon={<Brain size={18} />} label="Memory" isCollapsed={isCollapsed} />
+            <SidebarNavItem
+              active={pathname === "/ai/memory"}
+              href="/ai/memory"
+              icon={<Brain size={18} />}
+              isCollapsed={isCollapsed}
+              label="Memory"
+            />
             <SidebarNavItem icon={<Database size={18} />} label="Knowledge" isCollapsed={isCollapsed} />
             <SidebarNavItem icon={<Settings2 size={18} />} label="Playground" isCollapsed={isCollapsed} />
             <SidebarNavItem icon={<PenTool size={18} />} label="Design" isCollapsed={isCollapsed} />
@@ -186,14 +203,16 @@ function SidebarNavItem({
   icon, 
   label, 
   active = false, 
-  isCollapsed = false 
+  isCollapsed = false,
+  href,
 }: { 
   icon: React.ReactNode; 
   label: string; 
   active?: boolean;
   isCollapsed?: boolean;
+  href?: string;
 }) {
-  return (
+  const content = (
     <div className={`flex items-center transition-all cursor-pointer group ${
       isCollapsed ? "w-6 h-6 justify-center rounded-xl" : "w-full gap-3 px-3 py-2 rounded-xl"
     } ${
@@ -203,4 +222,10 @@ function SidebarNavItem({
       {!isCollapsed && <span>{label}</span>}
     </div>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+
+  return content;
 }

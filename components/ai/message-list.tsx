@@ -2,7 +2,8 @@
 
 import React from "react";
 import { UIMessage, FileUIPart } from "ai";
-import { User, Sparkles, Copy, RotateCcw, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Brain, Sparkles, Copy, RotateCcw, ThumbsUp, ThumbsDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Message,
   MessageContent,
@@ -30,7 +31,8 @@ export const getMessageText = (message: UIMessage) => {
       .map((part) => part.text)
       .join("");
   }
-  return typeof message.content === "string" ? message.content : "";
+  const legacyContent = (message as { content?: unknown }).content;
+  return typeof legacyContent === "string" ? legacyContent : "";
 };
 
 export const getMessageReasoning = (message: UIMessage) => {
@@ -54,6 +56,7 @@ interface MessageListProps {
   messages: UIMessage[];
   isLoading: boolean;
   copyToClipboard: (text: string) => void;
+  onSaveMemory: (text: string) => void;
   regenerate: (options?: any) => void;
   selectedModel: string;
 }
@@ -62,6 +65,7 @@ export function MessageList({
   messages,
   isLoading,
   copyToClipboard,
+  onSaveMemory,
   regenerate,
   selectedModel,
 }: MessageListProps) {
@@ -120,25 +124,33 @@ export function MessageList({
                   )}
                 </MessageContent>
                 
-                {message.role === 'assistant' && (
-                  <MessageToolbar className="mt-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <MessageActions className="bg-[#080808] p-1 rounded-full border border-white/5 shadow-xl">
-                      <MessageAction tooltip="Duplicate Data" onClick={() => copyToClipboard(text)} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
-                        <Copy size={13} />
-                      </MessageAction>
-                      <MessageAction tooltip="Recycle Cycle" onClick={() => regenerate({ body: { model: selectedModel } })} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
-                        <RotateCcw size={13} />
-                      </MessageAction>
-                      <div className="divider divider-horizontal mx-0 w-px opacity-10 py-1"></div>
-                      <MessageAction tooltip="Positive Feedback" className="hover:text-green-400 hover:bg-green-400/10 rounded-full cursor-pointer">
-                        <ThumbsUp size={13} />
-                      </MessageAction>
-                      <MessageAction tooltip="Negative Feedback" className="hover:text-red-400 hover:bg-red-400/10 rounded-full cursor-pointer">
-                        <ThumbsDown size={13} />
-                      </MessageAction>
-                    </MessageActions>
-                  </MessageToolbar>
-                )}
+                <MessageToolbar className={cn(
+                  "mt-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0",
+                  message.role === 'user' && "justify-end"
+                )}>
+                  <MessageActions className="bg-[#080808] p-1 rounded-full border border-white/5 shadow-xl">
+                    <MessageAction tooltip="Copy message" onClick={() => copyToClipboard(text)} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
+                      <Copy size={13} />
+                    </MessageAction>
+                    <MessageAction tooltip="Save to memory" onClick={() => onSaveMemory(text)} className="hover:text-indigo-300 hover:bg-indigo-500/10 rounded-full cursor-pointer">
+                      <Brain size={13} />
+                    </MessageAction>
+                    {message.role === 'assistant' && (
+                      <>
+                        <MessageAction tooltip="Regenerate response" onClick={() => regenerate({ body: { model: selectedModel } })} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
+                          <RotateCcw size={13} />
+                        </MessageAction>
+                        <div className="divider divider-horizontal mx-0 w-px opacity-10 py-1"></div>
+                        <MessageAction tooltip="Positive feedback" className="hover:text-green-400 hover:bg-green-400/10 rounded-full cursor-pointer">
+                          <ThumbsUp size={13} />
+                        </MessageAction>
+                        <MessageAction tooltip="Negative feedback" className="hover:text-red-400 hover:bg-red-400/10 rounded-full cursor-pointer">
+                          <ThumbsDown size={13} />
+                        </MessageAction>
+                      </>
+                    )}
+                  </MessageActions>
+                </MessageToolbar>
               </div>
             </div>
           </Message>
