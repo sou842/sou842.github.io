@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Menu } from "lucide-react";
 import Link from "next/link";
@@ -52,7 +52,7 @@ const getSaveMemoryToolOutputs = (message: { parts?: unknown[] }) =>
     return [{ toolCallId: toolPart.toolCallId ?? output.memory.content, output: output as SaveMemoryToolOutput }];
   });
 
-export default function AIPage() {
+function AIPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -346,5 +346,20 @@ export default function AIPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function AIPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-full flex items-center justify-center bg-[#000000] text-white/20">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Initializing Jarvis...</span>
+        </div>
+      </div>
+    }>
+      <AIPageContent />
+    </Suspense>
   );
 }
