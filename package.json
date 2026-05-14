@@ -72,6 +72,7 @@
   },
   "dependencies": {
     "@ai-sdk/mistral": "^3.0.36",
+    "@ai-sdk/openai": "^3.0.63",
     "@ai-sdk/react": "^3.0.184",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@rive-app/react-webgl2": "^4.28.4",

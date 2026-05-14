@@ -17,6 +17,12 @@ import {
   AttachmentPreview,
 } from "@/components/ai-elements/attachments";
 
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
+
 export const getMessageText = (message: UIMessage) => {
   if (message.parts) {
     return message.parts
@@ -25,6 +31,16 @@ export const getMessageText = (message: UIMessage) => {
       .join("");
   }
   return typeof message.content === "string" ? message.content : "";
+};
+
+export const getMessageReasoning = (message: UIMessage) => {
+  if (message.parts) {
+    return message.parts
+      .filter((part) => part.type === "reasoning")
+      .map((part: any) => part.reasoning || part.text)
+      .join("");
+  }
+  return "";
 };
 
 export const getMessageAttachments = (message: UIMessage): FileUIPart[] => {
@@ -57,15 +73,33 @@ export function MessageList({
         return (
           <Message key={message.id} from={message.role} className="animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className={`flex gap-6 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-10 h-10 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-2xl border ${message.role === 'user' ? 'bg-[#0A0A0A] border-white/10' : 'bg-primary/10 border-primary/20 shadow-primary/5'}`}>
+              {/* <div className={`w-10 h-10 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-2xl border ${message.role === 'user' ? 'bg-[#0A0A0A] border-white/10' : 'bg-primary/10 border-primary/20 shadow-primary/5'}`}>
                 {message.role === 'user' ? <User size={18} className="text-white/80" /> : <Sparkles size={18} className="text-primary" />}
-              </div>
+              </div> */}
               <div className={`flex-1 min-w-0 flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`text-[10px] font-bold uppercase tracking-[0.25em] mb-2 ${message.role === 'user' ? 'text-white/20 mr-2' : 'text-primary/40 ml-1'}`}>
-                  {message.role === 'user' ? 'User Identity' : 'Jarvis Core'}
-                </div>
+                {message.role === 'assistant' && (
+                  <Reasoning 
+                    isStreaming={isLoading && messages[messages.length - 1].id === message.id}
+                    className="w-full"
+                  >
+                    <ReasoningTrigger className="py-2 px-1 text-white/40 hover:text-white/60" />
+                    <ReasoningContent className="py-4 px-1 text-white/50 leading-relaxed max-w-2xl">
+                      {getMessageReasoning(message) || (
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="size-1.5 bg-white/30 rounded-full shrink-0" />
+                            <span className="text-xs">Generating response</span>
+                          </div>
+                          <div className="text-xs opacity-40 ml-4">
+                            {isLoading && messages[messages.length - 1].id === message.id ? 'In progress' : 'Process completed'}
+                          </div>
+                        </div>
+                      )}
+                    </ReasoningContent>
+                  </Reasoning>
+                )}
                 <MessageContent className={message.role === 'user' ? 'group-[.is-user]:bg-[#0A0A0A] group-[.is-user]:text-white/90 group-[.is-user]:rounded-2xl group-[.is-user]:border group-[.is-user]:border-white/5 group-[.is-user]:shadow-2xl' : 'text-white/80'}>
-                  <MessageResponse isAnimating={isLoading && messages[messages.length-1].id === message.id} className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-[#050505] prose-pre:border prose-pre:border-white/5">
+                  <MessageResponse isAnimating={isLoading && messages[messages.length-1].id === message.id} className="prose prose-invert prose-base max-w-none prose-p:leading-relaxed prose-pre:bg-[#050505] prose-pre:border prose-pre:border-white/5">
                     {text}
                   </MessageResponse>
                   

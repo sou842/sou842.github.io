@@ -1,4 +1,5 @@
 import { createMistral } from '@ai-sdk/mistral';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 import dbConnect from '@/lib/mongodb';
 import Chat from '@/lib/models/Chat';
@@ -13,6 +14,11 @@ const mistral = createMistral({
   baseURL: process.env.MISTRAL_BASE_URL,
 });
 
+const deepseek = createOpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://api.deepseek.com',
+});
+
 const chatRequestSchema = z.object({
   chatId: z.string().optional(),
   model: z.string().optional(),
@@ -23,6 +29,7 @@ const ALLOWED_MODELS = new Set([
   'mistral-large-latest',
   'mistral-small-latest',
   'codestral-latest',
+  'deepseek-reasoner',
 ]);
 
 export async function POST(req: Request) {
@@ -42,6 +49,8 @@ export async function POST(req: Request) {
       ? requestedModel
       : 'mistral-large-latest';
 
+    const provider = model === 'deepseek-reasoner' ? deepseek : mistral;
+
     let canPersist = false;
     try {
       await dbConnect();
@@ -51,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     const result = streamText({
-      model: mistral(model),
+      model: provider(model),
       messages: await convertToModelMessages(messages),
       system: "You are Jarvis, a helpful and sophisticated AI assistant. You are polite, efficient, and have a slight British flair, similar to Tony Stark's assistant. You help users with coding, analysis, and general tasks.",
       onFinish: async ({ text }) => {
