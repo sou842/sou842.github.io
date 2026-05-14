@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin 'daisyui';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
@@ -208,5 +209,9 @@
     0%   { background-position: 0% 50%; }
     50%  { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+  }
+
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
   }
 }
