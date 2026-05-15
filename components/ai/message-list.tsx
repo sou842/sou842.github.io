@@ -25,6 +25,7 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { WeatherCard } from "@/components/ai/weather-card";
 
 interface MessageListProps {
   messages: UIMessage[];
@@ -213,6 +214,10 @@ const MessageRow = React.memo(function MessageRow({
   const messageAttachments = getMessageAttachments(message);
   const isEditing = editingId === message.id;
   const isStreamingAssistant = isLastStreaming && message.role === "assistant";
+  
+  const weatherInvocations = (message as any)?.toolInvocations?.filter(
+    (ti:any) => ti.state === 'result' && ti.toolName === 'getWeather' && ti.result && !('error' in ti.result)
+  );
 
   return (
     <Message
@@ -287,6 +292,11 @@ const MessageRow = React.memo(function MessageRow({
                 {text}
               </MessageResponse>
             )}
+
+            {!isEditing && weatherInvocations?.map((invocation: any) => (
+              <WeatherCard key={invocation.toolCallId} data={invocation.result as any} />
+            ))}
+
             
             {!editingId && messageAttachments.length > 0 && (
               <Attachments className="mt-6 flex flex-wrap gap-3">

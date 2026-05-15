@@ -35,6 +35,7 @@ export async function PATCH(
       updateData.messages = messages.map((m: any) => ({
         role: m.role,
         content: getMessageText(m as any).trim() || m.content || '',
+        toolInvocations: m.toolInvocations || [],
       }));
     }
 

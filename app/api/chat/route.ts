@@ -63,6 +63,57 @@ const tools = {
       status: 'ready_for_client_persist' as const,
     }),
   }),
+  getWeather: tool({
+    description: "Get current weather or forecast for a specific location. Use this when the user asks about weather, temperature, or conditions. If you don't have coordinates, providing a city name as 'location' is sufficient.",
+    inputSchema: z.object({
+      location: z.string().describe("City name (e.g., 'Bangalore', 'London')"),
+      latitude: z.number().optional().describe("Latitude of the location"),
+      longitude: z.number().optional().describe("Longitude of the location"),
+    }),
+    execute: async ({ location, latitude, longitude }) => {
+      let lat = latitude;
+      let lon = longitude;
+
+      // 1. Geocoding if only location name is provided
+      if (location && (lat === undefined || lon === undefined)) {
+        try {
+          const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`);
+          const geoData = await geoRes.json();
+          if (!geoData.results || geoData.results.length === 0) {
+            return { error: `Could not find coordinates for "${location}"` };
+          }
+          lat = geoData.results[0].latitude;
+          lon = geoData.results[0].longitude;
+        } catch (err) {
+          return { error: "Geocoding service unavailable." };
+        }
+      }
+
+      if (lat === undefined || lon === undefined) {
+        return { error: "Missing location or coordinates." };
+      }
+
+      // 2. Fetch weather data
+      try {
+        const weatherRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
+        );
+        const weatherData = await weatherRes.json();
+        
+        return {
+          location: location || "the requested coordinates",
+          latitude: lat,
+          longitude: lon,
+          current: weatherData.current_weather,
+          daily: weatherData.daily,
+          hourly: weatherData.hourly,
+          units: weatherData.current_weather_units
+        };
+      } catch (err) {
+        return { error: "Weather service unavailable." };
+      }
+    },
+  }),
 };
 
 export async function POST(req: Request) {
@@ -94,7 +145,9 @@ export async function POST(req: Request) {
     const memoryContext = formatMemoriesForPrompt(memories);
     const systemPrompt = [
       "You are Jarvis, a helpful and sophisticated AI assistant. You are polite, efficient, and have a slight British flair, similar to Tony Stark's assistant. You help users with coding, analysis, and general tasks.",
-      "Tool policy: when the user explicitly asks you to remember, memorize, store, save, or note information for future chats, call the saveMemory tool with the cleaned memory. Pick category carefully: profile is identity/contact/role/location, preference is likes/default preferences, project is project/codebase/stack/product info, instruction is future behavior rules, fact is everything else. After the tool succeeds, briefly confirm what was saved.",
+      "Tool & Memory policy:",
+      "1. To remember information: call 'saveMemory' when explicitly asked to remember/memorize/store facts. Pick categories carefully.",
+      "2. For weather: To get weather, you need coordinates. Search memories for the user's location/city. If not found, ask the user for their location. Once you have a city name or coordinates, call 'getWeather'.",
       memoryContext
         ? `Use these saved user memories when relevant. Do not mention them unless it helps the answer.\n${memoryContext}`
         : "",
@@ -112,7 +165,7 @@ export async function POST(req: Request) {
       system: systemPrompt,
       tools,
       stopWhen: stepCountIs(2),
-      onFinish: async ({ text }) => {
+      onFinish: async ({ text, toolResults }) => {
         if (!canPersist) {
           return;
         }
@@ -121,9 +174,17 @@ export async function POST(req: Request) {
           const dbMessages = (messages || []).map((m: any) => ({
             role: m.role,
             content: getMessageText(m as any).trim() || m.content || '',
+            toolInvocations: m.toolInvocations || [],
           }));
 
-          const assistantMessage = { role: 'assistant', content: text };
+          const assistantMessage = { 
+            role: 'assistant', 
+            content: text,
+            toolInvocations: toolResults?.map(result => ({
+              ...result,
+              state: 'result' as const,
+            })) || []
+          };
           dbMessages.push(assistantMessage);
 
           if (validChatId) {
