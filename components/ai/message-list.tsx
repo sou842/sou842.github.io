@@ -132,17 +132,25 @@ export function MessageList({
       })}
       
       {isLoading && messages[messages.length - 1]?.role === 'user' && (
-        <Message from="assistant" className="animate-pulse">
+        <Message from="assistant" className="animate-in fade-in duration-500">
            <div className="flex gap-6">
-            <div className="w-10 h-10 rounded-[1.25rem] bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 shadow-lg">
-              <Sparkles size={18} className="text-primary/40 animate-spin-slow" />
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-2xl shadow-primary/5 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent animate-pulse" />
+              <Sparkles size={18} className="text-primary animate-spin-slow relative z-10" />
             </div>
-            <div className="flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-[0.25em] mb-2 text-primary/20 ml-1">
-                Processing Cycle
+            <div className="flex-1 pt-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary/40">
+                  Synthesizing
+                </div>
+                <div className="flex gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-primary/30 animate-bounce [animation-duration:1s] [animation-delay:-0.3s]"></div>
+                  <div className="w-1 h-1 rounded-full bg-primary/30 animate-bounce [animation-duration:1s] [animation-delay:-0.15s]"></div>
+                  <div className="w-1 h-1 rounded-full bg-primary/30 animate-bounce [animation-duration:1s]"></div>
+                </div>
               </div>
-              <MessageContent className="italic text-white/30 text-sm font-light tracking-wide">
-                Neural pathways routing...
+              <MessageContent className="text-white/40 text-sm font-medium leading-relaxed max-w-md">
+                Refining knowledge parameters and preparing your response...
               </MessageContent>
             </div>
           </div>
