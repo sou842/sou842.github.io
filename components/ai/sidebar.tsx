@@ -16,7 +16,8 @@ import {
   Pencil,
   Check,
   X,
-  Ellipsis
+  Ellipsis,
+  BookOpenCheck
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -136,22 +137,28 @@ export function Sidebar({
               className={`flex items-center transition-all group ${
                 isCollapsed 
                   ? "w-10 h-10 justify-center rounded-xl bg-white/5 hover:bg-white/10" 
-                  : "w-full gap-3 px-3 py-2.5 rounded-xl bg-white/5 text-white font-medium text-sm hover:bg-white/10"
+                  : "w-full gap-3 px-3 py-2.5 rounded-xl text-white font-medium text-sm hover:bg-white/10"
               }`}
             >
-              <SquarePlus size={18} className="text-white/40 group-hover:text-white transition-colors shrink-0" />
+              <SquarePlus size={16} className="text-white/40 group-hover:text-white transition-colors shrink-0" />
               {!isCollapsed && <span>New Chat</span>}
             </button>
             <SidebarNavItem
               active={pathname === "/ai/memory"}
               href="/ai/memory"
-              icon={<Brain size={18} />}
+              icon={<Brain size={16} />}
               isCollapsed={isCollapsed}
               label="Memory"
             />
-            <SidebarNavItem icon={<Database size={18} />} label="Knowledge" isCollapsed={isCollapsed} />
-            <SidebarNavItem icon={<Settings2 size={18} />} label="Playground" isCollapsed={isCollapsed} />
-            <SidebarNavItem icon={<PenTool size={18} />} label="Design" isCollapsed={isCollapsed} />
+            <SidebarNavItem icon={<Database size={16} />} label="Knowledge" isCollapsed={isCollapsed} />
+            <SidebarNavItem
+              active={pathname === "/ai/tasks"}
+              href="/ai/tasks"
+              icon={<BookOpenCheck size={16} />}
+              isCollapsed={isCollapsed}
+              label="Tasks"
+            />
+            <SidebarNavItem icon={<PenTool size={16} />} label="Design" isCollapsed={isCollapsed} />
           </div>
 
           {/* Recents Section */}
