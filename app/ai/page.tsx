@@ -34,24 +34,11 @@ function AIPageContent() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [chats, setChats] = useState<StoredChat[]>([]);
   const [activeChatId, setActiveChatId] = useState("");
+  const activeChatIdRef = useRef("");
   const persistedToolCallsRef = useRef(new Set<string>());
 
   const { messages, sendMessage, status, regenerate, setMessages } = useChat({
     onFinish: ({ message }) => {
-      // Sync chat with finished assistant message
-      setChats((prev) =>
-        prev.map((chat) =>
-          chat.id === activeChatId
-            ? {
-              ...chat,
-              messages: [...messages, message],
-              title: deriveChatTitle([...messages, message]),
-              updatedAt: Date.now(),
-            }
-            : chat
-        )
-      );
-
       for (const { toolCallId, output } of getSaveMemoryToolOutputs(message)) {
         if (persistedToolCallsRef.current.has(toolCallId)) {
           continue;
@@ -93,31 +80,34 @@ function AIPageContent() {
     
     setActiveChatId(initial.id);
     setMessages(initial.messages);
+    activeChatIdRef.current = initial.id;
   }, [setMessages, searchParams]);
 
-  // Throttled localStorage sync to prevent blocking the main thread during streaming
   useEffect(() => {
-    if (chats.length === 0) return;
-    
-    const timer = setTimeout(() => {
+    if (chats.length > 0) {
       saveStoredChats(chats);
-    }, 2000); // 2 second debounce for persistence
-    
-    return () => clearTimeout(timer);
+    }
   }, [chats]);
 
-  // Optimize scroll logic with requestAnimationFrame to prevent forced reflows
   useEffect(() => {
-    if (!scrollRef.current) return;
-    
-    const scrollContainer = scrollRef.current;
-    const isAtBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 150;
+    if (!activeChatId || activeChatId !== activeChatIdRef.current) return;
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === activeChatId
+          ? {
+            ...chat,
+            messages,
+            title: deriveChatTitle(messages),
+            updatedAt: Date.now(),
+          }
+          : chat
+      )
+    );
+  }, [messages, activeChatId]);
 
-    if (isAtBottom || status === "submitted") {
-      const frame = requestAnimationFrame(() => {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      });
-      return () => cancelAnimationFrame(frame);
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, status]);
 
@@ -130,6 +120,7 @@ function AIPageContent() {
     const next = createEmptyChat();
     setChats((prev) => [next, ...prev]);
     setActiveChatId(next.id);
+    activeChatIdRef.current = next.id;
     setInput("");
     setMessages([]);
     router.replace(`/ai?q=${next.id}`);
@@ -149,6 +140,7 @@ function AIPageContent() {
     if (id === activeChatId) {
       const nextChat = filtered[0];
       setActiveChatId(nextChat.id);
+      activeChatIdRef.current = nextChat.id;
       setMessages(nextChat.messages);
     }
     
@@ -159,6 +151,7 @@ function AIPageContent() {
     const selected = chats.find((chat) => chat.id === id);
     if (selected) {
       setMessages(selected.messages);
+      activeChatIdRef.current = id;
     }
     setActiveChatId(id);
     setMobileSidebarOpen(false);
@@ -176,27 +169,6 @@ function AIPageContent() {
     message: Parameters<typeof sendMessage>[0],
     options?: Parameters<typeof sendMessage>[1]
   ) => {
-    // Update local chats list with the user message optimistically
-    const userMessage: UIMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: typeof message === 'string' ? message : '',
-      createdAt: new Date(),
-    };
-
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === activeChatId
-          ? {
-            ...chat,
-            messages: [...messages, userMessage],
-            title: deriveChatTitle([...messages, userMessage]),
-            updatedAt: Date.now(),
-          }
-          : chat
-      )
-    );
-
     await sendMessage(message, {
       ...options,
       body: {
