@@ -118,29 +118,24 @@ export async function POST(req: Request) {
         }
 
         try {
-          const lastUserMessage = [...(messages || [])]
-            .reverse()
-            .find((message) => message.role === 'user');
-          
-          const userText = lastUserMessage ? getMessageText(lastUserMessage as any).trim() : '';
+          const dbMessages = (messages || []).map((m: any) => ({
+            role: m.role,
+            content: getMessageText(m as any).trim() || m.content || '',
+          }));
 
-          if (!userText) {
-            return;
-          }
-
-          const userMessage = { role: 'user', content: userText };
           const assistantMessage = { role: 'assistant', content: text };
+          dbMessages.push(assistantMessage);
 
           if (validChatId) {
             await Chat.findByIdAndUpdate(validChatId, {
-              $push: { messages: [userMessage, assistantMessage] },
-              $setOnInsert: { title: `${userMessage.content.slice(0, 50)}...` }
+              $set: { messages: dbMessages },
+              $setOnInsert: { title: `${dbMessages[0]?.content?.slice(0, 50) || 'New Chat'}...` }
             }, { upsert: true });
           } else {
             // Fallback for safety, though validChatId should be present
             await Chat.create({
-              title: `${userMessage.content.slice(0, 50)}...`,
-              messages: [userMessage, assistantMessage],
+              title: `${dbMessages[0]?.content?.slice(0, 50) || 'New Chat'}...`,
+              messages: dbMessages,
             });
           }
         } catch (dbError) {

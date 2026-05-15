@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Chat from '@/lib/models/Chat';
+import { getMessageText } from '@/lib/ai/message-utils';
 
 export async function GET(
   req: Request,
@@ -26,10 +27,20 @@ export async function PATCH(
   try {
     const { id } = await params;
     await dbConnect();
-    const { title } = await req.json();
+    const { title, messages } = await req.json();
+    
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (messages !== undefined) {
+      updateData.messages = messages.map((m: any) => ({
+        role: m.role,
+        content: getMessageText(m as any).trim() || m.content || '',
+      }));
+    }
+
     const chat = await Chat.findByIdAndUpdate(
       id,
-      { title },
+      { $set: updateData },
       { new: true }
     );
     if (!chat) {

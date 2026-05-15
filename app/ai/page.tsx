@@ -396,10 +396,22 @@ function AIPageContent() {
 
     // Trigger regeneration from this point
     try {
+      const enabledMemories = memories
+        .filter((m) => m.enabled && m.content.trim())
+        .slice(0, 24)
+        .map(({ title, content, category, tags }) => ({ title, content, category, tags }));
+
+      const reloadOptions = {
+        body: {
+          memories: enabledMemories,
+          chatId: activeChatId,
+        }
+      };
+
       if (typeof (chat as any).reload === 'function') {
-        await (chat as any).reload();
+        await (chat as any).reload(reloadOptions);
       } else if (typeof (chat as any).regenerate === 'function') {
-        await (chat as any).regenerate();
+        await (chat as any).regenerate(reloadOptions);
       } else {
         // Fallback: manually trigger a re-render or toast
         console.warn('Neither reload nor regenerate found on useChat return object');
