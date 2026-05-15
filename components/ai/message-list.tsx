@@ -45,9 +45,10 @@ export function MessageList({
 }: MessageListProps) {
   return (
     <>
-      {messages.map((message) => {
+      {messages.map((message, index) => {
         const text = getMessageText(message);
         const messageAttachments = getMessageAttachments(message);
+        const isStreaming = isLoading && messages[messages.length - 1].id === message.id && message.role === 'assistant';
         return (
           <Message key={message.id} from={message.role} className="animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className={`flex gap-6 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -98,33 +99,35 @@ export function MessageList({
                   )}
                 </MessageContent>
                 
-                <MessageToolbar className={cn(
-                  "mt-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0",
-                  message.role === 'user' && "justify-end"
-                )}>
-                  <MessageActions className="bg-[#080808] p-1 rounded-full border border-white/5 shadow-xl">
-                    <MessageAction tooltip="Copy message" onClick={() => copyToClipboard(text)} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
-                      <Copy size={13} />
-                    </MessageAction>
-                    <MessageAction tooltip="Save to memory" onClick={() => onSaveMemory(text)} className="hover:text-indigo-300 hover:bg-indigo-500/10 rounded-full cursor-pointer">
-                      <Brain size={13} />
-                    </MessageAction>
-                    {message.role === 'assistant' && (
-                      <>
-                        <MessageAction tooltip="Regenerate response" onClick={() => regenerate({ body: { model: selectedModel } })} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
-                          <RotateCcw size={13} />
-                        </MessageAction>
-                        <div className="divider divider-horizontal mx-0 w-px opacity-10 py-1"></div>
-                        <MessageAction tooltip="Positive feedback" className="hover:text-green-400 hover:bg-green-400/10 rounded-full cursor-pointer">
-                          <ThumbsUp size={13} />
-                        </MessageAction>
-                        <MessageAction tooltip="Negative feedback" className="hover:text-red-400 hover:bg-red-400/10 rounded-full cursor-pointer">
-                          <ThumbsDown size={13} />
-                        </MessageAction>
-                      </>
-                    )}
-                  </MessageActions>
-                </MessageToolbar>
+                {!isStreaming && (
+                  <MessageToolbar className={cn(
+                    "mt-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0",
+                    message.role === 'user' && "justify-end"
+                  )}>
+                    <MessageActions className="bg-[#080808] p-1 rounded-full border border-white/5 shadow-xl">
+                      <MessageAction tooltip="Copy message" onClick={() => copyToClipboard(text)} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
+                        <Copy size={13} />
+                      </MessageAction>
+                      <MessageAction tooltip="Save to memory" onClick={() => onSaveMemory(text)} className="hover:text-indigo-300 hover:bg-indigo-500/10 rounded-full cursor-pointer">
+                        <Brain size={13} />
+                      </MessageAction>
+                      {message.role === 'assistant' && (
+                        <>
+                          <MessageAction tooltip="Regenerate response" onClick={() => regenerate({ body: { model: selectedModel } })} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
+                            <RotateCcw size={13} />
+                          </MessageAction>
+                          <div className="divider divider-horizontal mx-0 w-px opacity-10 py-1"></div>
+                          <MessageAction tooltip="Positive feedback" className="hover:text-green-400 hover:bg-green-400/10 rounded-full cursor-pointer">
+                            <ThumbsUp size={13} />
+                          </MessageAction>
+                          <MessageAction tooltip="Negative feedback" className="hover:text-red-400 hover:bg-red-400/10 rounded-full cursor-pointer">
+                            <ThumbsDown size={13} />
+                          </MessageAction>
+                        </>
+                      )}
+                    </MessageActions>
+                  </MessageToolbar>
+                )}
               </div>
             </div>
           </Message>
