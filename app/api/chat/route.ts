@@ -6,6 +6,7 @@ import Chat from '@/lib/models/Chat';
 import { formatMemoriesForPrompt } from '@/lib/memory-storage';
 import mongoose from 'mongoose';
 import { z } from 'zod';
+import { getMessageText } from '@/lib/ai/message-utils';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -99,7 +100,11 @@ export async function POST(req: Request) {
         : "",
     ].filter(Boolean).join("\n\n");
 
-    const modelMessages = convertToModelMessages(messages);
+    const normalizedMessages = (messages || []).map((m: any) => ({
+      ...m,
+      parts: m.parts || [{ type: 'text', text: String(m.content || '') }]
+    }));
+    const modelMessages = await convertToModelMessages(normalizedMessages);
 
     const result = streamText({
       model: provider(model),
@@ -113,14 +118,11 @@ export async function POST(req: Request) {
         }
 
         try {
-          const lastUserMessage = [...messages]
+          const lastUserMessage = [...(messages || [])]
             .reverse()
             .find((message) => message.role === 'user');
-          const userText = lastUserMessage?.parts
-            .filter((part) => part.type === 'text')
-            .map((part) => part.text)
-            .join('')
-            .trim();
+          
+          const userText = lastUserMessage ? getMessageText(lastUserMessage as any).trim() : '';
 
           if (!userText) {
             return;

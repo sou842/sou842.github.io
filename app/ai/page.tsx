@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import Link from "next/link";
+import type { UIMessage } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -31,8 +31,13 @@ import {
   inferMemoryCategory, 
   type MemoryItem 
 } from "@/lib/memory-storage";
+import { nanoid } from "nanoid";
 
 function AIPageContent() {
+  const PERF_DEBUG = process.env.NEXT_PUBLIC_CHAT_PERF_DEBUG === "1";
+  const STREAM_RENDER_THROTTLE_MS = 80;
+  const CHAT_SIDEBAR_SYNC_DEBOUNCE_MS = 800;
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,14 +52,23 @@ function AIPageContent() {
   const [activeChatId, setActiveChatId] = useState("");
   const activeChatIdRef = useRef("");
   const persistedToolCallsRef = useRef(new Set<string>());
+  const chatSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const streamRenderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastStreamRenderTickRef = useRef(0);
+  const shouldAutoScrollRef = useRef(true);
+  const scrollRafRef = useRef<number | null>(null);
+  const lastAutoScrollTsRef = useRef(0);
+  const perfSamplesRef = useRef({ streamUpdates: 0, longFrames: 0, lastTokenTs: 0 });
   const [isSyncing, setIsSyncing] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [renderMessages, setRenderMessages] = useState<UIMessage[]>([]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const chat = useChat({
+    experimental_throttle: STREAM_RENDER_THROTTLE_MS,
     onFinish: async ({ message }) => {
       // If this was a new chat (no messages before this run), add it to the sidebar and update URL
       // We check if the chat is already in our list
@@ -65,9 +79,15 @@ function AIPageContent() {
         const assistantMessage = { ...message, content: assistantText };
         
         // Construct the full history for the new chat
+        const fallbackUserMessage = {
+          id: nanoid(),
+          role: "user" as const,
+          content: "New Chat",
+          parts: [{ type: "text", text: "New Chat" }],
+        } as unknown as UIMessage;
         const newChatMessages = firstUserMessage 
           ? [...messages, assistantMessage]
-          : [{ role: 'user' as const, content: 'New Chat' }, assistantMessage];
+          : [fallbackUserMessage, assistantMessage];
 
         const newChat: StoredChat = {
           id: activeChatId,
@@ -105,9 +125,25 @@ function AIPageContent() {
     },
   });
   
-  const { messages, sendMessage, status, regenerate, setMessages, reload, append } = chat;
+  const { messages, sendMessage, status, regenerate, setMessages } = chat;
 
   const isLoading = status === "submitted" || status === "streaming";
+
+  const syncActiveChatSummary = useCallback((nextMessages: UIMessage[]) => {
+    if (!activeChatId || activeChatId !== activeChatIdRef.current) return;
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === activeChatId
+          ? {
+              ...chat,
+              messages: nextMessages,
+              title: deriveChatTitle(nextMessages),
+              updatedAt: Date.now(),
+            }
+          : chat
+      )
+    );
+  }, [activeChatId]);
 
   useEffect(() => {
     const init = async () => {
@@ -167,29 +203,116 @@ function AIPageContent() {
     init();
   }, [setMessages, searchParams]);
 
-  // Local storage auto-save removed as we use MongoDB
-
   useEffect(() => {
     if (!activeChatId || activeChatId !== activeChatIdRef.current) return;
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === activeChatId
-          ? {
-            ...chat,
-            messages,
-            title: deriveChatTitle(messages),
-            updatedAt: Date.now(),
-          }
-          : chat
-      )
-    );
-  }, [messages, activeChatId]);
+    if (isLoading) return;
+    syncActiveChatSummary(messages);
+  }, [messages, activeChatId, isLoading, syncActiveChatSummary]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (!activeChatId || activeChatId !== activeChatIdRef.current || !isLoading) return;
+
+    if (chatSyncTimerRef.current) {
+      clearTimeout(chatSyncTimerRef.current);
     }
-  }, [messages, status]);
+
+    chatSyncTimerRef.current = setTimeout(() => {
+      syncActiveChatSummary(messages);
+      chatSyncTimerRef.current = null;
+    }, CHAT_SIDEBAR_SYNC_DEBOUNCE_MS);
+
+    return () => {
+      if (chatSyncTimerRef.current) {
+        clearTimeout(chatSyncTimerRef.current);
+      }
+    };
+  }, [messages, isLoading, activeChatId, syncActiveChatSummary]);
+
+  useEffect(() => {
+    if (!messages.length) {
+      setRenderMessages(messages);
+      return;
+    }
+
+    if (!isLoading) {
+      setRenderMessages(messages);
+      return;
+    }
+
+    const now = Date.now();
+    const elapsed = now - lastStreamRenderTickRef.current;
+    const tick = () => {
+      setRenderMessages(messages);
+      lastStreamRenderTickRef.current = Date.now();
+      if (PERF_DEBUG) {
+        perfSamplesRef.current.streamUpdates += 1;
+      }
+    };
+
+    if (elapsed >= STREAM_RENDER_THROTTLE_MS) {
+      tick();
+      return;
+    }
+
+    if (streamRenderTimerRef.current) {
+      clearTimeout(streamRenderTimerRef.current);
+    }
+    streamRenderTimerRef.current = setTimeout(tick, STREAM_RENDER_THROTTLE_MS - elapsed);
+
+    return () => {
+      if (streamRenderTimerRef.current) {
+        clearTimeout(streamRenderTimerRef.current);
+      }
+    };
+  }, [messages, isLoading, PERF_DEBUG]);
+
+  const scheduleAutoScroll = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container || !shouldAutoScrollRef.current) return;
+    const now = performance.now();
+    if (now - lastAutoScrollTsRef.current < 48) return;
+
+    if (scrollRafRef.current) {
+      cancelAnimationFrame(scrollRafRef.current);
+    }
+
+    scrollRafRef.current = requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+      lastAutoScrollTsRef.current = performance.now();
+      scrollRafRef.current = null;
+    });
+  }, []);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const onScroll = () => {
+      const distanceToBottom = container.scrollHeight - (container.scrollTop + container.clientHeight);
+      shouldAutoScrollRef.current = distanceToBottom <= 120;
+    };
+
+    container.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    scheduleAutoScroll();
+  }, [renderMessages, status, scheduleAutoScroll]);
+
+  useEffect(() => {
+    if (!PERF_DEBUG) return;
+    const start = performance.now();
+    perfSamplesRef.current.lastTokenTs = start;
+    const frame = requestAnimationFrame(() => {
+      const frameCost = performance.now() - start;
+      if (frameCost > 40) {
+        perfSamplesRef.current.longFrames += 1;
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [renderMessages, PERF_DEBUG]);
 
   const selectedModelData = useMemo(
     () => mistralModels.find((model) => model.id === selectedModel),
@@ -203,6 +326,7 @@ function AIPageContent() {
     activeChatIdRef.current = next.id;
     setInput("");
     setMessages([]);
+    setRenderMessages([]);
     router.replace("/ai"); // Clear the URL
   };
 
@@ -216,6 +340,7 @@ function AIPageContent() {
       setChats([fallback]);
       setActiveChatId(fallback.id);
       setMessages([]);
+      setRenderMessages([]);
       return;
     }
     
@@ -229,8 +354,10 @@ function AIPageContent() {
       loadChatDetails(nextChatSummary.id).then(fullChat => {
         if (fullChat) {
           setMessages(fullChat.messages || []);
+          setRenderMessages(fullChat.messages || []);
         } else {
           setMessages([]);
+          setRenderMessages([]);
         }
       });
     }
@@ -249,11 +376,16 @@ function AIPageContent() {
     if (messageIndex === -1) return;
 
     // Truncate and update the edited message
-    const updatedMessage = { ...messages[messageIndex], content };
+    const updatedMessage = {
+      ...messages[messageIndex],
+      content,
+      parts: [{ type: "text", text: content }],
+    } as UIMessage;
     const truncatedMessages = [...messages.slice(0, messageIndex), updatedMessage];
     
     // Update local state
     setMessages(truncatedMessages);
+    setRenderMessages(truncatedMessages);
 
     // Persist to database
     await saveStoredChat({
@@ -286,12 +418,15 @@ function AIPageContent() {
       const fullChat = await loadChatDetails(id);
       if (fullChat) {
         setMessages(fullChat.messages || []);
+        setRenderMessages(fullChat.messages || []);
         activeChatIdRef.current = id;
       } else {
         setMessages([]);
+        setRenderMessages([]);
       }
     } catch (error) {
       setMessages([]);
+      setRenderMessages([]);
       toast.error("Failed to load chat history.");
     }
   };
@@ -399,7 +534,7 @@ function AIPageContent() {
 
           <div className="flex-1 overflow-y-auto px-4 py-10 scroll-smooth scrollbar-hide" ref={scrollRef}>
             <div className="mx-auto w-full max-w-3xl space-y-12 pb-40">
-              {messages.length === 0 ? (
+              {renderMessages.length === 0 ? (
                 <EmptyState
                   input={input}
                   setInput={setInput}
@@ -408,20 +543,22 @@ function AIPageContent() {
                 />
               ) : (
                 <MessageList
-                  messages={messages}
+                  messages={renderMessages}
                   isLoading={isLoading}
                   copyToClipboard={copyToClipboard}
                   onSaveMemory={saveMessageToMemory}
                   regenerate={regenerateWithMemory}
                   selectedModel={selectedModel}
                   onEditMessage={onEditMessage}
+                  scrollContainerRef={scrollRef}
+                  debugPerf={PERF_DEBUG}
                 />
               )}
             </div>
           </div>
 
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#000000] via-[#000000]/80 to-transparent z-10" />
-          {!!messages.length &&
+          {!!renderMessages.length &&
             <ChatInput
               input={input}
               setInput={setInput}
