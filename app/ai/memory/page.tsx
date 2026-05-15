@@ -25,6 +25,8 @@ import {
   type MemoryItem,
 } from "@/lib/memory-storage";
 import { useAI } from "../_components/ai-provider";
+import { MemoryTable } from "./_components/memory-table";
+
 
 const emptyForm = {
   title: "",
@@ -227,12 +229,12 @@ export default function MemoryPage() {
       {/* HEADER */}
 
       <header className="sticky top-0 z-30 border-b border-white/5 bg-black/70 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-5 py-5">
+        <div className="mx-auto max-w-8xl px-5 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
                 <button
-                  className="md:hidden size-10 rounded-xl border border-white/10 bg-white/[0.03] flex items-center justify-center"
+                  className="md:hidden size-10 rounded-xl border border-white/10 bg-white/3 flex items-center justify-center"
                   onClick={() =>
                     setMobileSidebarOpen(true)
                   }
@@ -240,7 +242,7 @@ export default function MemoryPage() {
                   <Menu size={18} />
                 </button>
 
-                <div className="size-11 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
+                <div className="size-11 rounded-2xl bg-white/4 border border-white/10 flex items-center justify-center">
                   <Brain className="size-5 text-indigo-200" />
                 </div>
 
@@ -341,10 +343,10 @@ export default function MemoryPage() {
 
       {/* CONTENT */}
 
-      <div className="mx-auto max-w-7xl px-5 py-6 overflow-y-auto">
+      <div className="w-full mx-auto max-w-8xl px-5 py-6 overflow-y-auto">
         {filteredMemories.length === 0 ? (
           <div className="min-h-[500px] rounded-3xl border border-dashed border-white/10 bg-[#050505] flex flex-col items-center justify-center text-center px-6">
-            <div className="size-16 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-center mb-5">
+            <div className="size-16 rounded-3xl bg-white/3 border border-white/10 flex items-center justify-center mb-5">
               <Brain className="size-7 text-white/25" />
             </div>
 
@@ -368,79 +370,13 @@ export default function MemoryPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredMemories.map((memory) => (
-              <article
-                key={memory.id}
-                className={`group rounded-2xl border bg-[#070707] p-4 transition-all duration-200 hover:bg-[#0A0A0A] hover:border-white/15 ${memory.enabled
-                  ? "border-white/10"
-                  : "border-white/6 opacity-50"
-                  }`}
-              >
-                <div className="mb-2">
-                  <h2 className="text-sm font-medium leading-tight text-white/90">
-                    {memory.title || "Untitled Memory"}
-                  </h2>
-                  <p className="mt-2 text-[13px] leading-relaxed text-white/45 line-clamp-3 whitespace-pre-wrap">
-                    {memory.content}
-                  </p>
-                </div>
+          <MemoryTable
+            data={filteredMemories}
+            onEdit={editMemory}
+            onDelete={deleteMemory}
+            onToggle={toggleMemory}
+          />
 
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full border border-indigo-400/20 bg-indigo-400/10 text-[10px] font-medium text-indigo-200 capitalize">
-                      {memory.category}
-                    </span>
-
-                    {!memory.enabled && (
-                      <span className="px-2 py-0.5 rounded-full border border-white/10 text-[10px] text-white/35">
-                        Disabled
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
-                    <button
-                      onClick={() => toggleMemory(memory.id)}
-                      className="size-7 rounded-lg hover:bg-white/[0.05] flex items-center justify-center text-white/40 hover:text-white"
-                      title={memory.enabled ? "Disable" : "Enable"}
-                    >
-                      {memory.enabled ? <Check size={14} /> : <X size={14} />}
-                    </button>
-                    <button
-                      onClick={() => editMemory(memory)}
-                      className="size-7 rounded-lg hover:bg-white/[0.05] flex items-center justify-center text-white/40 hover:text-white"
-                      title="Edit"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={() => deleteMemory(memory.id)}
-                      className="size-7 rounded-lg hover:bg-red-500/10 flex items-center justify-center text-white/40 hover:text-red-300"
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                {(memory.tags.length > 0 || memory.source) && (
-                  <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/5 pt-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      {memory.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="text-xs text-white/20">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                    <span className="text-[10px] uppercase tracking-wider text-white/20">
-                      {memory.source}
-                    </span>
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
         )}
       </div>
 

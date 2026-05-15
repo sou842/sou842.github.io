@@ -25,10 +25,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Plus, Calendar, Clock } from "lucide-react";
+import { Plus, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "motion/react";
 
 const COLUMNS = [
   { id: "backlog", title: "Backlog", color: "slate" },
@@ -151,7 +150,7 @@ function KanbanColumn({ id, title, tasks, onEdit, onAddTask, color }: any) {
             color === "emerald" && "bg-emerald-500"
           )} />
           <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider">{title}</h3>
-          <Badge variant="outline" className="bg-white/5 border-white/10 text-white/40">
+          <Badge variant="outline" className="bg-white/5 border-white/10 text-white/40 rounded-full">
             {tasks.length}
           </Badge>
         </div>
