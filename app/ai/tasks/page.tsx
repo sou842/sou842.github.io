@@ -225,7 +225,7 @@ export default function TasksPage() {
         <img 
           src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Upscaled%20Image%20%2810%29-UnDKstODkIENp5xqTYUEpt0Sm8tNOw.png" 
           alt="Decorative Background" 
-          className="w-full h-auto object-cover object-bottom opacity-90 mix-blend-lighten scale-110"
+          className="w-full h-auto object-cover object-bottom opacity-70 mix-blend-lighten scale-110"
         />
       </div>
     </>

@@ -139,7 +139,7 @@ function KanbanColumn({ id, title, tasks, onEdit, onAddTask, color }: any) {
   });
 
   return (
-    <div className="flex flex-col gap-6 min-h-[85vh]">
+    <div className="flex flex-col gap-6 h-[85vh] overflow-y-auto">
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
           <div className={cn(
@@ -169,7 +169,7 @@ function KanbanColumn({ id, title, tasks, onEdit, onAddTask, color }: any) {
         className="flex-1 flex flex-col gap-4 p-3 rounded-2xl bg-white/6 border border-dashed border-white/5 transition-colors"
       >
         <SortableContext items={tasks.map((t: any) => String(t._id))} strategy={verticalListSortingStrategy}>
-          {tasks.map((task: any) => (
+          {tasks?.map((task: any) => (
             <TaskCard key={String(task._id)} task={task} onEdit={onEdit} />
           ))}
         </SortableContext>
@@ -213,7 +213,7 @@ function TaskCard({ task, onEdit, isOverlay }: any) {
       <div
         ref={setNodeRef}
         style={style}
-        className="h-[120px] rounded-xl bg-white/[0.02] border border-dashed border-white/10"
+        className="h-[120px] rounded-xl bg-white/2 border border-dashed border-white/10"
       />
     );
   }
@@ -250,7 +250,7 @@ function TaskCard({ task, onEdit, isOverlay }: any) {
         </div>
 
         {task?.description && (
-          <p className="text-xs text-white/40 line-clamp-2 leading-relaxed">
+          <p className="text-xs text-white/60 line-clamp-2 leading-relaxed">
             {task.description}
           </p>
         )}
@@ -262,7 +262,7 @@ function TaskCard({ task, onEdit, isOverlay }: any) {
               <span>{format(new Date(task.dueDate), "MMM d")}</span>
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-xs text-white/30 ml-auto">
+          <div className="flex items-center gap-1.5 text-xs text-white/40 ml-auto">
              <Clock size={12} />
              <span>{format(new Date(task.updatedAt || task.createdAt), "HH:mm")}</span>
           </div>

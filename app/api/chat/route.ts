@@ -6,7 +6,9 @@ import Chat from '@/lib/models/Chat';
 import { formatMemoriesForPrompt } from '@/lib/memory-storage';
 import mongoose from 'mongoose';
 import { z } from 'zod';
+import Task from '@/lib/models/Task';
 import { getMessageText } from '@/lib/ai/message-utils';
+
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -41,6 +43,9 @@ const ALLOWED_MODELS = new Set([
 ]);
 
 const memoryCategorySchema = z.enum(['profile', 'preference', 'project', 'fact', 'instruction']);
+const taskStatusSchema = z.enum(['todo', 'in-progress', 'done', 'backlog']);
+const taskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
+
 
 const tools = {
   saveMemory: tool({
@@ -114,6 +119,157 @@ const tools = {
       }
     },
   }),
+  getTime: tool({
+    description: "Get current date and time for a specific location. Use this when the user asks for the time, date, or day of the week. Defaults to India if no location is specified.",
+    inputSchema: z.object({
+      location: z.string().default("India").describe("City or country name (e.g., 'London', 'USA', 'India')"),
+    }),
+    execute: async ({ location }) => {
+      try {
+        let timezone = "Asia/Kolkata"; // Default
+        let resolvedLocation = "India";
+
+        const aliases: Record<string, string> = {
+          "bangalore": "Asia/Kolkata",
+          "bengaluru": "Asia/Kolkata",
+          "mumbai": "Asia/Kolkata",
+          "bombay": "Asia/Kolkata",
+          "delhi": "Asia/Kolkata",
+          "new delhi": "Asia/Kolkata",
+          "calcutta": "Asia/Kolkata",
+          "kolkata": "Asia/Kolkata",
+          "madras": "Asia/Kolkata",
+          "chennai": "Asia/Kolkata",
+          "pune": "Asia/Kolkata",
+          "hyderabad": "Asia/Kolkata",
+        };
+
+        if (location && location.toLowerCase() !== "india") {
+          const aliasTimezone = aliases[location.toLowerCase()];
+          if (aliasTimezone) {
+            timezone = aliasTimezone;
+            resolvedLocation = location.charAt(0).toUpperCase() + location.slice(1);
+          } else {
+            const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=10&language=en&format=json`);
+            const geoData = await geoRes.json();
+            if (geoData.results && geoData.results.length > 0) {
+              // Pick the most significant result (highest population or first major city)
+              const bestMatch = geoData.results.sort((a: any, b: any) => (b.population || 0) - (a.population || 0))[0];
+              timezone = bestMatch.timezone || "UTC";
+              resolvedLocation = bestMatch.name + (bestMatch.country ? `, ${bestMatch.country}` : "");
+            } else {
+              return { error: `Could not find timezone for "${location}". Defaulting to India.` };
+            }
+          }
+        }
+
+
+
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone,
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+
+        const formatted = formatter.format(now);
+        
+        return {
+          location: resolvedLocation,
+          timezone: timezone,
+          formatted: formatted,
+          timestamp: now.toISOString()
+        };
+      } catch (err) {
+        return { error: "Time service unavailable." };
+      }
+    },
+  }),
+
+  listTasks: tool({
+    description: "List the user's tasks from their task manager. Can filter by status or priority. Use this when the user asks about their tasks, what they need to do, or wants a summary of their work.",
+    inputSchema: z.object({
+      status: taskStatusSchema.optional().describe('Filter by status (todo, in-progress, done, backlog)'),
+      priority: taskPrioritySchema.optional().describe('Filter by priority (low, medium, high, urgent)'),
+    }),
+    execute: async ({ status, priority }) => {
+      try {
+        await dbConnect();
+        const filter: any = {};
+        if (status) filter.status = status;
+        if (priority) filter.priority = priority;
+        const tasks = await Task.find(filter).sort({ updatedAt: -1 }).limit(50);
+        return { success: true, tasks: JSON.parse(JSON.stringify(tasks)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+  createTask: tool({
+    description: "Create a new task in the user's task manager.",
+    inputSchema: z.object({
+      title: z.string().min(1).max(100).describe('Short title of the task'),
+      description: z.string().max(1000).optional().describe('Detailed description of what needs to be done'),
+      status: taskStatusSchema.default('todo').describe('Initial status of the task'),
+      priority: taskPrioritySchema.default('medium').describe('Priority level'),
+      dueDate: z.string().optional().describe('Due date in ISO string format or YYYY-MM-DD'),
+      tags: z.array(z.string()).default([]).describe('Optional tags for categorization'),
+    }),
+    execute: async (data) => {
+      try {
+        await dbConnect();
+        const task = await Task.create(data);
+        return { success: true, task: JSON.parse(JSON.stringify(task)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+  updateTask: tool({
+    description: "Update an existing task's details, status, or priority. You must have the task ID (usually found via listTasks).",
+    inputSchema: z.object({
+      id: z.string().describe('The MongoDB ID of the task to update'),
+      title: z.string().optional().describe('New title for the task'),
+      description: z.string().optional().describe('New description'),
+      status: taskStatusSchema.optional().describe('New status'),
+      priority: taskPrioritySchema.optional().describe('New priority level'),
+      dueDate: z.string().optional().describe('New due date'),
+      tags: z.array(z.string()).optional().describe('Updated tags'),
+    }),
+    execute: async ({ id, ...updateData }) => {
+      try {
+        await dbConnect();
+        const task = await Task.findByIdAndUpdate(id, updateData, { new: true });
+        if (!task) return { success: false, error: "Task not found" };
+        return { success: true, task: JSON.parse(JSON.stringify(task)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+  deleteTask: tool({
+    description: "Delete a task from the task manager. Use with caution. Always confirm with the user first.",
+    inputSchema: z.object({
+      id: z.string().describe('The MongoDB ID of the task to delete'),
+    }),
+    execute: async ({ id }) => {
+      try {
+        await dbConnect();
+        const result = await Task.deleteOne({ _id: id });
+        if (result.deletedCount === 0) return { success: false, error: "Task not found" };
+        return { success: true, message: "Task deleted successfully" };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
 };
 
 export async function POST(req: Request) {
@@ -148,9 +304,14 @@ export async function POST(req: Request) {
       "Tool & Memory policy:",
       "1. To remember information: call 'saveMemory' when explicitly asked to remember/memorize/store facts. Pick categories carefully.",
       "2. For weather: To get weather, you need coordinates. Search memories for the user's location/city. If not found, ask the user for their location. Once you have a city name or coordinates, call 'getWeather'.",
+      "3. For tasks: You can manage the user's tasks. Use 'listTasks' to see what's on their plate, 'createTask' to add new ones, 'updateTask' to change details or status, and 'deleteTask' to remove them. Always confirm with the user before deleting.",
+      "4. For date & time: Use 'getTime' to get the current date or time for any location. Default is India. If the user asks for the current time or date without specifying a city, call 'getTime' with no arguments. Be specific with city names (e.g., 'London, UK') to avoid ambiguity.",
       memoryContext
+
         ? `Use these saved user memories when relevant. Do not mention them unless it helps the answer.\n${memoryContext}`
         : "",
+
+
     ].filter(Boolean).join("\n\n");
 
     const normalizedMessages = (messages || []).map((m: any) => ({
