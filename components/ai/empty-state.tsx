@@ -10,13 +10,13 @@ import {
   AudioLines,
 } from "lucide-react";
 
-import { FileUIPart } from "ai";
+import { type SendChatMessage } from "@/components/ai/types";
 import { ArrowUp } from "lucide-react";
 
 interface EmptyStateProps {
   input: string;
   setInput: (v: string) => void;
-  sendMessage: (message: { text: string; files: FileUIPart[] }, options?: any) => Promise<void>;
+  sendMessage: SendChatMessage;
   selectedModel: string;
 }
 

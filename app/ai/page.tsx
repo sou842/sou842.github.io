@@ -11,6 +11,8 @@ import { Sidebar } from "@/components/ai/sidebar";
 import { ChatInput, mistralModels } from "@/components/ai/chat-input";
 import { MessageList } from "@/components/ai/message-list";
 import { EmptyState } from "@/components/ai/empty-state";
+import { useSidebarResize } from "@/app/ai/_hooks/use-sidebar-resize";
+import { getSaveMemoryToolOutputs } from "@/app/ai/_lib/chat-tools";
 import {
   createEmptyChat,
   deriveChatTitle,
@@ -18,50 +20,17 @@ import {
   saveStoredChats,
   type StoredChat,
 } from "@/lib/chat-storage";
-import { addMemory, getEnabledMemoriesForPrompt, inferMemoryCategory, type MemoryCategory } from "@/lib/memory-storage";
-
-type SaveMemoryToolOutput = {
-  action: "save_memory";
-  memory: {
-    title: string;
-    content: string;
-    category: MemoryCategory;
-    tags: string[];
-  };
-  status: "ready_for_client_persist";
-};
-
-const getSaveMemoryToolOutputs = (message: { parts?: unknown[] }) =>
-  (message.parts ?? []).flatMap((part) => {
-    const toolPart = part as {
-      type?: string;
-      state?: string;
-      toolCallId?: string;
-      output?: unknown;
-    };
-
-    if (toolPart.type !== "tool-saveMemory" || toolPart.state !== "output-available") {
-      return [];
-    }
-
-    const output = toolPart.output as Partial<SaveMemoryToolOutput> | undefined;
-    if (output?.action !== "save_memory" || output.status !== "ready_for_client_persist" || !output.memory?.content) {
-      return [];
-    }
-
-    return [{ toolCallId: toolPart.toolCallId ?? output.memory.content, output: output as SaveMemoryToolOutput }];
-  });
+import { addMemory, getEnabledMemoriesForPrompt, inferMemoryCategory } from "@/lib/memory-storage";
 
 function AIPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const resizeRef = useRef(false);
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(mistralModels[0].id);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(272);
+  const { sidebarWidth, startResize } = useSidebarResize();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [chats, setChats] = useState<StoredChat[]>([]);
   const [activeChatId, setActiveChatId] = useState("");
@@ -140,35 +109,10 @@ function AIPageContent() {
     }
   }, [messages, status]);
 
-  useEffect(() => {
-    const onMouseMove = (event: MouseEvent) => {
-      if (!resizeRef.current) return;
-      const next = Math.min(520, Math.max(240, event.clientX));
-      setSidebarWidth(next);
-    };
-    const onMouseUp = () => {
-      resizeRef.current = false;
-      document.body.style.userSelect = "";
-      document.body.style.cursor = "";
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-  }, []);
-
   const selectedModelData = useMemo(
     () => mistralModels.find((model) => model.id === selectedModel),
     [selectedModel]
   );
-
-  const startResize = () => {
-    resizeRef.current = true;
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "col-resize";
-  };
 
   const createNewChat = () => {
     const next = createEmptyChat();

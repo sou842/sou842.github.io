@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import { getMessageText } from "@/lib/ai/message-utils";
 
 export const CHAT_STORAGE_KEY = "jarvis-chat-history-v1";
 
@@ -7,18 +8,6 @@ export type StoredChat = {
   title: string;
   updatedAt: number;
   messages: UIMessage[];
-};
-
-export const getMessageText = (message: UIMessage) => {
-  if (message.parts) {
-    return message.parts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text)
-      .join("");
-  }
-
-  const legacyContent = (message as { content?: unknown }).content;
-  return typeof legacyContent === "string" ? legacyContent : "";
 };
 
 export const deriveChatTitle = (messages: UIMessage[]) => {

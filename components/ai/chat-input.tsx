@@ -3,6 +3,7 @@
 import React, { memo } from "react";
 import { CheckIcon, Globe, PlusIcon } from "lucide-react";
 import { FileUIPart } from "ai";
+import { type SendChatMessage } from "@/components/ai/types";
 import {
   Attachment,
   AttachmentPreview,
@@ -98,7 +99,7 @@ interface ChatInputProps {
   input: string;
   setInput: (v: string) => void;
   isLoading: boolean;
-  sendMessage: (message: { text: string; files: FileUIPart[] }, options?: any) => Promise<void>;
+  sendMessage: SendChatMessage;
   selectedModel: string;
   setSelectedModel: (id: string) => void;
   selectedModelData: ModelItemData | undefined;

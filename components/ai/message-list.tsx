@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
-import { UIMessage, FileUIPart } from "ai";
+import { UIMessage } from "ai";
 import { Brain, Sparkles, Copy, RotateCcw, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getMessageAttachments, getMessageReasoning, getMessageText } from "@/lib/ai/message-utils";
+import { type RegenerateChatMessage } from "@/components/ai/types";
 import {
   Message,
   MessageContent,
@@ -24,40 +26,12 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 
-export const getMessageText = (message: UIMessage) => {
-  if (message.parts) {
-    return message.parts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text)
-      .join("");
-  }
-  const legacyContent = (message as { content?: unknown }).content;
-  return typeof legacyContent === "string" ? legacyContent : "";
-};
-
-export const getMessageReasoning = (message: UIMessage) => {
-  if (message.parts) {
-    return message.parts
-      .filter((part) => part.type === "reasoning")
-      .map((part: any) => part.reasoning || part.text)
-      .join("");
-  }
-  return "";
-};
-
-export const getMessageAttachments = (message: UIMessage): FileUIPart[] => {
-  if (message.parts) {
-    return message.parts.filter((part): part is FileUIPart => part.type === "file");
-  }
-  return [];
-};
-
 interface MessageListProps {
   messages: UIMessage[];
   isLoading: boolean;
   copyToClipboard: (text: string) => void;
   onSaveMemory: (text: string) => void;
-  regenerate: (options?: any) => void;
+  regenerate: RegenerateChatMessage;
   selectedModel: string;
 }
 
