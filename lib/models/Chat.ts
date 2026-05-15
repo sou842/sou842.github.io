@@ -22,11 +22,14 @@ const MessageSchema = new Schema<IMessage>({
 
 const ChatSchema = new Schema<IChat>(
   {
+    _id: { type: String, default: () => crypto.randomUUID() },
     title: { type: String, default: 'New Chat' },
     messages: [MessageSchema],
-    userId: { type: String },
+    userId: { type: String, index: true },
   },
   { timestamps: true }
 );
+
+ChatSchema.index({ updatedAt: -1 });
 
 export default mongoose.models.Chat || mongoose.model<IChat>('Chat', ChatSchema);

@@ -1,8 +1,7 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -10,17 +9,28 @@ import { toast } from "sonner";
 import { Sidebar } from "@/components/ai/sidebar";
 import { ChatInput, mistralModels } from "@/components/ai/chat-input";
 import { MessageList } from "@/components/ai/message-list";
+import { ChatHeader } from "@/components/ai/chat-header";
 import { EmptyState } from "@/components/ai/empty-state";
 import { useSidebarResize } from "@/app/ai/_hooks/use-sidebar-resize";
 import { getSaveMemoryToolOutputs } from "@/app/ai/_lib/chat-tools";
+import { getMessageText } from "@/lib/ai/message-utils";
 import {
   createEmptyChat,
   deriveChatTitle,
   loadStoredChats,
-  saveStoredChats,
+  loadChatDetails,
+  syncChatsWithDatabase,
+  deleteStoredChat,
+  saveStoredChat,
   type StoredChat,
 } from "@/lib/chat-storage";
-import { addMemory, getEnabledMemoriesForPrompt, inferMemoryCategory } from "@/lib/memory-storage";
+import { 
+  addMemory, 
+  syncMemoriesWithDatabase, 
+  loadStoredMemories,
+  inferMemoryCategory, 
+  type MemoryItem 
+} from "@/lib/memory-storage";
 
 function AIPageContent() {
   const router = useRouter();
@@ -33,25 +43,59 @@ function AIPageContent() {
   const { sidebarWidth, startResize } = useSidebarResize();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [chats, setChats] = useState<StoredChat[]>([]);
+  const [memories, setMemories] = useState<MemoryItem[]>([]);
   const [activeChatId, setActiveChatId] = useState("");
   const activeChatIdRef = useRef("");
   const persistedToolCallsRef = useRef(new Set<string>());
+  const [isSyncing, setIsSyncing] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
-  const { messages, sendMessage, status, regenerate, setMessages } = useChat({
-    onFinish: ({ message }) => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const chat = useChat({
+    onFinish: async ({ message }) => {
+      // If this was a new chat (no messages before this run), add it to the sidebar and update URL
+      // We check if the chat is already in our list
+      const isNewChat = !chats.find(c => c.id === activeChatId);
+      if (isNewChat) {
+        const firstUserMessage = messages.find(m => m.role === 'user');
+        const assistantText = getMessageText(message);
+        const assistantMessage = { ...message, content: assistantText };
+        
+        // Construct the full history for the new chat
+        const newChatMessages = firstUserMessage 
+          ? [...messages, assistantMessage]
+          : [{ role: 'user' as const, content: 'New Chat' }, assistantMessage];
+
+        const newChat: StoredChat = {
+          id: activeChatId,
+          title: deriveChatTitle(newChatMessages),
+          messages: newChatMessages,
+          updatedAt: Date.now()
+        };
+        setChats(prev => [newChat, ...prev]);
+        router.replace(`/ai?q=${activeChatId}`);
+      }
+
       for (const { toolCallId, output } of getSaveMemoryToolOutputs(message)) {
         if (persistedToolCallsRef.current.has(toolCallId)) {
           continue;
         }
 
         persistedToolCallsRef.current.add(toolCallId);
-        addMemory({
+        const newMemory = await addMemory({
           title: output.memory.title,
           content: output.memory.content,
           category: output.memory.category,
           source: "chat",
           tags: [...new Set([...output.memory.tags, "chat", "tool"])],
         });
+        
+        if (newMemory) {
+          setMemories(prev => [newMemory, ...prev]);
+        }
         toast.success("Saved to memory.");
       }
     },
@@ -60,34 +104,70 @@ function AIPageContent() {
       toast.error("Chat request failed. Please try again.");
     },
   });
+  
+  const { messages, sendMessage, status, regenerate, setMessages, reload, append } = chat;
 
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
-    const parsed = loadStoredChats();
-    if (parsed.length === 0) {
-      const initial = createEmptyChat();
-      setChats([initial]);
-      setActiveChatId(initial.id);
-      setMessages(initial.messages);
-      return;
-    }
+    const init = async () => {
+      setIsSyncing(true);
+      try {
+        await Promise.all([syncChatsWithDatabase(), syncMemoriesWithDatabase()]);
+        
+        const [parsedChats, parsedMemories] = await Promise.all([
+          loadStoredChats(),
+          loadStoredMemories()
+        ]);
+        
+        setMemories(parsedMemories);
+        setChats(parsedChats);
 
-    setChats(parsed);
-    
-    const q = searchParams.get("q");
-    const initial = parsed.find((c) => c.id === q) || parsed[0];
-    
-    setActiveChatId(initial.id);
-    setMessages(initial.messages);
-    activeChatIdRef.current = initial.id;
+        if (parsedChats.length === 0) {
+          const initial = createEmptyChat();
+          setChats([initial]);
+          setActiveChatId(initial.id);
+          setMessages(initial.messages || []);
+          return;
+        }
+
+        const q = searchParams.get("q");
+        
+        if (!q) {
+          // New chat mode
+          const next = createEmptyChat();
+          setActiveChatId(next.id);
+          setMessages([]);
+          activeChatIdRef.current = next.id;
+          return;
+        }
+
+        const initialSummary = parsedChats.find((c) => c.id === q);
+        if (!initialSummary) {
+          // Invalid ID or not found, fallback to new chat or first chat?
+          // For safety, let's go to new chat
+          router.replace("/ai");
+          return;
+        }
+
+        const fullChat = await loadChatDetails(initialSummary.id);
+        
+        if (fullChat) {
+          setActiveChatId(fullChat.id);
+          setMessages(fullChat.messages || []);
+          activeChatIdRef.current = fullChat.id;
+        }
+      } catch (error) {
+        console.error("Failed to initialize AI data:", error);
+        toast.error("Failed to sync with database.");
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+    init();
   }, [setMessages, searchParams]);
 
-  useEffect(() => {
-    if (chats.length > 0) {
-      saveStoredChats(chats);
-    }
-  }, [chats]);
+  // Local storage auto-save removed as we use MongoDB
 
   useEffect(() => {
     if (!activeChatId || activeChatId !== activeChatIdRef.current) return;
@@ -118,17 +198,19 @@ function AIPageContent() {
 
   const createNewChat = () => {
     const next = createEmptyChat();
-    setChats((prev) => [next, ...prev]);
+    // We don't add it to chats list yet, just set it as active
     setActiveChatId(next.id);
     activeChatIdRef.current = next.id;
     setInput("");
     setMessages([]);
-    router.replace(`/ai?q=${next.id}`);
+    router.replace("/ai"); // Clear the URL
   };
 
-  const removeChat = (id: string) => {
+  const removeChat = async (id: string) => {
     const filtered = chats.filter((chat) => chat.id !== id);
     
+    await deleteStoredChat(id);
+
     if (filtered.length === 0) {
       const fallback = createEmptyChat();
       setChats([fallback]);
@@ -138,24 +220,80 @@ function AIPageContent() {
     }
     
     if (id === activeChatId) {
-      const nextChat = filtered[0];
-      setActiveChatId(nextChat.id);
-      activeChatIdRef.current = nextChat.id;
-      setMessages(nextChat.messages);
+      const nextChatSummary = filtered[0];
+      setActiveChatId(nextChatSummary.id);
+      activeChatIdRef.current = nextChatSummary.id;
+      router.replace(`/ai?q=${nextChatSummary.id}`);
+      
+      // Load full details for the next chat
+      loadChatDetails(nextChatSummary.id).then(fullChat => {
+        if (fullChat) {
+          setMessages(fullChat.messages || []);
+        } else {
+          setMessages([]);
+        }
+      });
     }
     
     setChats(filtered);
   };
 
-  const onSelectChat = (id: string) => {
-    const selected = chats.find((chat) => chat.id === id);
-    if (selected) {
-      setMessages(selected.messages);
-      activeChatIdRef.current = id;
+  const onRenameChat = async (id: string, title: string) => {
+    setChats((prev) => prev.map((chat) => (chat.id === id ? { ...chat, title } : chat)));
+    await saveStoredChat({ id, title } as any);
+  };
+
+  const onEditMessage = async (id: string, content: string) => {
+    // Find the index of the edited message
+    const messageIndex = messages.findIndex(m => m.id === id);
+    if (messageIndex === -1) return;
+
+    // Truncate and update the edited message
+    const updatedMessage = { ...messages[messageIndex], content };
+    const truncatedMessages = [...messages.slice(0, messageIndex), updatedMessage];
+    
+    // Update local state
+    setMessages(truncatedMessages);
+
+    // Persist to database
+    await saveStoredChat({
+      id: activeChatId,
+      messages: truncatedMessages,
+      updatedAt: Date.now()
+    } as any);
+
+    // Trigger regeneration from this point
+    try {
+      if (typeof (chat as any).reload === 'function') {
+        await (chat as any).reload();
+      } else if (typeof (chat as any).regenerate === 'function') {
+        await (chat as any).regenerate();
+      } else {
+        // Fallback: manually trigger a re-render or toast
+        console.warn('Neither reload nor regenerate found on useChat return object');
+      }
+    } catch (e) {
+      console.error('Failed to reload chat:', e);
     }
+  };
+
+  const onSelectChat = async (id: string) => {
     setActiveChatId(id);
     setMobileSidebarOpen(false);
     router.replace(`/ai?q=${id}`);
+
+    try {
+      const fullChat = await loadChatDetails(id);
+      if (fullChat) {
+        setMessages(fullChat.messages || []);
+        activeChatIdRef.current = id;
+      } else {
+        setMessages([]);
+      }
+    } catch (error) {
+      setMessages([]);
+      toast.error("Failed to load chat history.");
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -169,40 +307,62 @@ function AIPageContent() {
     message: Parameters<typeof sendMessage>[0],
     options?: Parameters<typeof sendMessage>[1]
   ) => {
+    const enabledMemories = memories
+      .filter((m) => m.enabled && m.content.trim())
+      .slice(0, 24)
+      .map(({ title, content, category, tags }) => ({ title, content, category, tags }));
+
     await sendMessage(message, {
       ...options,
       body: {
         ...options?.body,
-        memories: getEnabledMemoriesForPrompt(),
+        memories: enabledMemories,
+        chatId: activeChatId,
       },
     });
   };
 
   const regenerateWithMemory = (options?: Parameters<typeof regenerate>[0]) => {
+    const enabledMemories = memories
+      .filter((m) => m.enabled && m.content.trim())
+      .slice(0, 24)
+      .map(({ title, content, category, tags }) => ({ title, content, category, tags }));
+
     regenerate({
       ...options,
       body: {
         ...options?.body,
-        memories: getEnabledMemoriesForPrompt(),
+        memories: enabledMemories,
+        chatId: activeChatId,
       },
     });
   };
 
-  const saveMessageToMemory = (text: string) => {
+  const saveMessageToMemory = async (text: string) => {
     const content = text.trim();
     if (!content) {
       toast.error("Nothing to remember in this message.");
       return;
     }
 
-    addMemory({
+    const newMemory = await addMemory({
       content,
       category: inferMemoryCategory(content),
       source: "chat",
       tags: ["chat"],
     });
-    toast.success("Saved to memory.");
+
+    if (newMemory) {
+      setMemories(prev => [newMemory, ...prev]);
+      toast.success("Saved to memory.");
+    }
   };
+
+  if (!mounted) {
+    return (
+      <div className="h-screen w-full bg-[#000000]" />
+    );
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-[#000000] text-[#E5E5E5] font-sans selection:bg-primary/30">
@@ -213,6 +373,7 @@ function AIPageContent() {
           createNewChat={createNewChat}
           mobileSidebarOpen={mobileSidebarOpen}
           onSelectChat={onSelectChat}
+          onRenameChat={onRenameChat}
           removeChat={removeChat}
           setMobileSidebarOpen={setMobileSidebarOpen}
           setSidebarOpen={setSidebarOpen}
@@ -231,31 +392,10 @@ function AIPageContent() {
 
 
         <main className="relative flex min-w-0 flex-1 flex-col bg-[#000000]">
-          <header className="h-16 border-b border-[#111] flex items-center justify-between px-6 z-20 backdrop-blur-2xl bg-[#000000]/70 sticky top-0">
-            <div className="flex items-center gap-4">
-              <button
-                className="rounded-xl border border-white/5 bg-white/5 p-2 text-white/40 md:hidden"
-                onClick={() => setMobileSidebarOpen(true)}
-                type="button"
-              >
-                <Menu size={16} />
-              </button>
-              <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 md:flex hidden">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Core Status: Stable</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-xs font-medium text-white/40 md:flex hidden">
-                <span className="opacity-50">Session Active</span>
-              </div>
-              <div className="divider divider-horizontal mx-1 h-4 self-center opacity-10 md:flex hidden"></div>
-              <Link className="btn btn-ghost btn-sm text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all" href="/">
-                Disconnect
-              </Link>
-            </div>
-          </header>
+          <ChatHeader 
+            onOpenMobileSidebar={() => setMobileSidebarOpen(true)} 
+            isSyncing={isSyncing}
+          />
 
           <div className="flex-1 overflow-y-auto px-4 py-10 scroll-smooth scrollbar-hide" ref={scrollRef}>
             <div className="mx-auto w-full max-w-3xl space-y-12 pb-40">
@@ -274,6 +414,7 @@ function AIPageContent() {
                   onSaveMemory={saveMessageToMemory}
                   regenerate={regenerateWithMemory}
                   selectedModel={selectedModel}
+                  onEditMessage={onEditMessage}
                 />
               )}
             </div>

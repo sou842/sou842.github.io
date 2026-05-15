@@ -12,7 +12,11 @@ import {
   PenTool, 
   Settings2, 
   SquarePlus,
-  Trash2
+  Trash2,
+  Pencil,
+  Check,
+  X,
+  Ellipsis
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,6 +33,7 @@ interface SidebarProps {
   createNewChat: () => void;
   removeChat: (id: string) => void;
   onSelectChat: (id: string) => void;
+  onRenameChat: (id: string, title: string) => void;
 }
 
 export function Sidebar({
@@ -42,16 +47,37 @@ export function Sidebar({
   createNewChat,
   removeChat,
   onSelectChat,
+  onRenameChat,
 }: SidebarProps) {
   const isCollapsed = !sidebarOpen;
   const pathname = usePathname();
   const router = useRouter();
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = React.useState("");
 
   const handleNewChat = () => {
     createNewChat();
     if (pathname !== "/ai") {
       router.push("/ai");
     }
+  };
+
+  const startEditing = (e: React.MouseEvent, chat: StoredChat) => {
+    e.stopPropagation();
+    setEditingId(chat.id);
+    setEditingTitle(chat.title);
+  };
+
+  const handleRename = () => {
+    if (editingId && editingTitle.trim()) {
+      onRenameChat(editingId, editingTitle.trim());
+    }
+    setEditingId(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleRename();
+    if (e.key === "Escape") setEditingId(null);
   };
 
   return (
@@ -138,24 +164,74 @@ export function Sidebar({
                   .sort((a, b) => b.updatedAt - a.updatedAt)
                   .map((chat) => (
                     <div
-                      className={`group flex items-center gap-2 rounded-xl px-3 py-2 transition-all cursor-pointer ${
+                      className={`group relative flex items-center gap-2 rounded-xl px-3 py-2 transition-all cursor-pointer ${
                         chat.id === activeChatId ? "bg-white/5 text-white" : "text-white/40 hover:bg-white/[0.02] hover:text-white/80"
                       }`}
                       key={chat.id}
                       onClick={() => onSelectChat(chat.id)}
                     >
                       <MessageCircle size={18} className={`shrink-0 transition-opacity ${chat.id === activeChatId ? "opacity-100 text-indigo-400" : "opacity-40 group-hover:opacity-70"}`} />
-                      <span className="flex-1 truncate text-sm font-medium tracking-tight">{chat.title}</span>
-                      <button
-                        className="rounded-lg p-1 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeChat(chat.id);
-                        }}
-                        type="button"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      
+                      {editingId === chat.id ? (
+                        <input
+                          autoFocus
+                          className="flex-1 bg-transparent text-sm font-medium outline-none border-b border-indigo-500/50"
+                          onBlur={handleRename}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          value={editingTitle}
+                        />
+                      ) : (
+                        <span className="flex-1 truncate text-sm font-medium tracking-tight">{chat.title}</span>
+                      )}
+
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="dropdown dropdown-left" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="rounded-lg p-1 hover:bg-white/5 hover:text-white"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            tabIndex={0}
+                            type="button"
+                          >
+                            <Ellipsis size={14} />
+                          </button>
+                          <ul 
+                            className="dropdown-content z-[30] menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-32 mt-2" 
+                            onClick={(e) => e.stopPropagation()}
+                            tabIndex={0}
+                          >
+                            <li>
+                              <button
+                                className="flex items-center gap-2 py-2 text-xs hover:bg-white/5"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  startEditing(e, chat);
+                                }}
+                              >
+                                <Pencil size={12} />
+                                Edit
+                              </button>
+                            </li>
+                            <li>
+                              <button
+                                className="flex items-center gap-2 py-2 text-xs text-red-400 hover:bg-red-500/10"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  removeChat(chat.id);
+                                }}
+                              >
+                                <Trash2 size={12} />
+                                Delete
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   ))}
               </div>

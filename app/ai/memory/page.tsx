@@ -10,15 +10,19 @@ import { Sidebar } from "@/components/ai/sidebar";
 import {
   createEmptyChat,
   loadStoredChats,
-  saveStoredChats,
+  syncChatsWithDatabase,
+  deleteStoredChat,
+  saveStoredChat,
   type StoredChat,
 } from "@/lib/chat-storage";
 import {
   createMemoryItem,
-  loadMemories,
+  loadStoredMemories,
+  syncMemoriesWithDatabase,
+  saveStoredMemory,
+  deleteStoredMemory,
   memoryCategories,
   parseMemoryTags,
-  saveMemories,
   type MemoryCategory,
   type MemoryItem,
 } from "@/lib/memory-storage";
@@ -42,26 +46,40 @@ export default function MemoryPage() {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<MemoryCategory | "all">("all");
   const [form, setForm] = useState(emptyForm);
+  const [isSyncing, setIsSyncing] = useState(true);
 
   useEffect(() => {
-    const storedChats = loadStoredChats();
-    if (storedChats.length) {
-      setChats(storedChats);
-      setActiveChatId(storedChats[0].id);
-    } else {
-      const initial = createEmptyChat();
-      setChats([initial]);
-      setActiveChatId(initial.id);
-      saveStoredChats([initial]);
-    }
+    const init = async () => {
+      setIsSyncing(true);
+      try {
+        await Promise.all([syncChatsWithDatabase(), syncMemoriesWithDatabase()]);
+        
+        const [storedChats, storedMemories] = await Promise.all([
+          loadStoredChats(),
+          loadStoredMemories()
+        ]);
 
-    setMemories(loadMemories());
+        if (storedChats.length) {
+          setChats(storedChats);
+          setActiveChatId(storedChats[0].id);
+        } else {
+          const initial = createEmptyChat();
+          setChats([initial]);
+          setActiveChatId(initial.id);
+        }
+
+        setMemories(storedMemories);
+      } catch (error) {
+        console.error("Failed to initialize memory page:", error);
+        toast.error("Failed to sync data.");
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+    init();
   }, []);
 
-  const persistMemories = (next: MemoryItem[]) => {
-    setMemories(next);
-    saveMemories(next);
-  };
+  // persistMemories removed as we use individual save/delete calls
 
   const filteredMemories = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -80,7 +98,7 @@ export default function MemoryPage() {
     setForm(emptyForm);
   };
 
-  const submitMemory = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitMemory = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const content = form.content.trim();
@@ -90,22 +108,21 @@ export default function MemoryPage() {
     }
 
     if (editingId) {
-      const next = memories.map((memory) =>
-        memory.id === editingId
-          ? {
-              ...memory,
-              title: form.title.trim() || memory.title,
-              content,
-              category: form.category,
-              tags: parseMemoryTags(form.tags),
-              enabled: form.enabled,
-              updatedAt: Date.now(),
-            }
-          : memory
-      );
-      persistMemories(next);
-      toast.success("Memory updated.");
-      resetForm();
+      const updatedMemory: Partial<MemoryItem> = {
+        id: editingId,
+        title: form.title.trim() || undefined,
+        content,
+        category: form.category,
+        tags: parseMemoryTags(form.tags),
+        enabled: form.enabled,
+      };
+      
+      const saved = await saveStoredMemory(updatedMemory);
+      if (saved) {
+        setMemories(prev => prev.map(m => m.id === editingId ? { ...m, ...updatedMemory, updatedAt: Date.now() } : m));
+        toast.success("Memory updated.");
+        resetForm();
+      }
       return;
     }
 
@@ -117,9 +134,14 @@ export default function MemoryPage() {
       tags: parseMemoryTags(form.tags),
       enabled: form.enabled,
     });
-    persistMemories([nextMemory, ...memories]);
-    toast.success("Memory saved.");
-    resetForm();
+    
+    const saved = await saveStoredMemory(nextMemory);
+    if (saved) {
+      const mappedSaved = { ...saved, id: saved._id };
+      setMemories(prev => [mappedSaved, ...prev]);
+      toast.success("Memory saved.");
+      resetForm();
+    }
   };
 
   const editMemory = (memory: MemoryItem) => {
@@ -133,40 +155,41 @@ export default function MemoryPage() {
     });
   };
 
-  const toggleMemory = (id: string) => {
-    persistMemories(
-      memories.map((memory) =>
-        memory.id === id
-          ? { ...memory, enabled: !memory.enabled, updatedAt: Date.now() }
-          : memory
-      )
-    );
+  const toggleMemory = async (id: string) => {
+    const memory = memories.find(m => m.id === id);
+    if (!memory) return;
+
+    const updated = { id, enabled: !memory.enabled };
+    const saved = await saveStoredMemory(updated);
+    if (saved) {
+      setMemories(prev => prev.map(m => m.id === id ? { ...m, enabled: !m.enabled, updatedAt: Date.now() } : m));
+    }
   };
 
-  const deleteMemory = (id: string) => {
-    persistMemories(memories.filter((memory) => memory.id !== id));
-    if (editingId === id) {
-      resetForm();
+  const deleteMemory = async (id: string) => {
+    const ok = await deleteStoredMemory(id);
+    if (ok) {
+      setMemories(prev => prev.filter(m => m.id !== id));
+      if (editingId === id) resetForm();
+      toast.success("Memory removed.");
     }
-    toast.success("Memory removed.");
   };
 
   const createNewChat = () => {
     const next = createEmptyChat();
-    const nextChats = [next, ...chats];
-    setChats(nextChats);
+    setChats(prev => [next, ...prev]);
     setActiveChatId(next.id);
-    saveStoredChats(nextChats);
     router.push("/ai");
   };
 
-  const removeChat = (id: string) => {
+  const removeChat = async (id: string) => {
+    await deleteStoredChat(id);
     const nextChats = chats.filter((chat) => chat.id !== id);
+    
     if (nextChats.length === 0) {
       const fallback = createEmptyChat();
       setChats([fallback]);
       setActiveChatId(fallback.id);
-      saveStoredChats([fallback]);
       return;
     }
 
@@ -174,7 +197,11 @@ export default function MemoryPage() {
     if (activeChatId === id) {
       setActiveChatId(nextChats[0].id);
     }
-    saveStoredChats(nextChats);
+  };
+
+  const onRenameChat = async (id: string, title: string) => {
+    setChats((prev) => prev.map((chat) => (chat.id === id ? { ...chat, title } : chat)));
+    await saveStoredChat({ id, title } as any);
   };
 
   const onSelectChat = (id: string) => {
@@ -182,6 +209,17 @@ export default function MemoryPage() {
     setMobileSidebarOpen(false);
     router.push("/ai");
   };
+
+  if (isSyncing) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#000000] text-white/20">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Syncing Memories...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-black text-[#E5E5E5] font-sans selection:bg-primary/30">
@@ -192,6 +230,7 @@ export default function MemoryPage() {
           createNewChat={createNewChat}
           mobileSidebarOpen={mobileSidebarOpen}
           onSelectChat={onSelectChat}
+          onRenameChat={onRenameChat}
           removeChat={removeChat}
           setMobileSidebarOpen={setMobileSidebarOpen}
           setSidebarOpen={setSidebarOpen}

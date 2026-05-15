@@ -33,8 +33,8 @@ const chatRequestSchema = z.object({
 });
 
 const ALLOWED_MODELS = new Set([
-  'mistral-large-latest',
   'mistral-small-latest',
+  'mistral-large-latest',
   'codestral-latest',
   'deepseek-reasoner',
 ]);
@@ -74,8 +74,7 @@ export async function POST(req: Request) {
 
     const { messages, chatId, memories = [], model: requestedModel } = parsed.data;
 
-    const validChatId =
-      chatId && mongoose.Types.ObjectId.isValid(chatId) ? chatId : undefined;
+    const validChatId = chatId;
 
     const model = requestedModel && ALLOWED_MODELS.has(requestedModel)
       ? requestedModel
@@ -100,9 +99,11 @@ export async function POST(req: Request) {
         : "",
     ].filter(Boolean).join("\n\n");
 
+    const modelMessages = convertToModelMessages(messages);
+
     const result = streamText({
       model: provider(model),
-      messages: await convertToModelMessages(messages),
+      messages: modelMessages.length > 0 ? modelMessages : [{ role: 'user', content: ' ' }],
       system: systemPrompt,
       tools,
       stopWhen: stepCountIs(2),
@@ -131,8 +132,10 @@ export async function POST(req: Request) {
           if (validChatId) {
             await Chat.findByIdAndUpdate(validChatId, {
               $push: { messages: [userMessage, assistantMessage] },
-            });
+              $setOnInsert: { title: `${userMessage.content.slice(0, 50)}...` }
+            }, { upsert: true });
           } else {
+            // Fallback for safety, though validChatId should be present
             await Chat.create({
               title: `${userMessage.content.slice(0, 50)}...`,
               messages: [userMessage, assistantMessage],

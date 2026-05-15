@@ -1,11 +1,12 @@
 export const MEMORY_STORAGE_KEY = "jarvis-memory-v1";
+export const MEMORY_MIGRATION_KEY = "jarvis-memories-migrated";
 
 export type MemoryCategory = "profile" | "preference" | "project" | "fact" | "instruction";
-
 export type MemorySource = "manual" | "chat";
 
 export type MemoryItem = {
   id: string;
+  _id?: string; // MongoDB ID
   title: string;
   content: string;
   category: MemoryCategory;
@@ -31,16 +32,10 @@ export const memoryCategories: Array<{ id: MemoryCategory; label: string }> = [
   { id: "instruction", label: "Instruction" },
 ];
 
-export const loadMemories = (): MemoryItem[] => {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
+export const loadLocalMemories = (): MemoryItem[] => {
+  if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(MEMORY_STORAGE_KEY);
-  if (!raw) {
-    return [];
-  }
-
+  if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as MemoryItem[];
     return Array.isArray(parsed) ? parsed : [];
@@ -49,30 +44,86 @@ export const loadMemories = (): MemoryItem[] => {
   }
 };
 
-export const saveMemories = (memories: MemoryItem[]) => {
-  if (typeof window === "undefined") {
+export const loadStoredMemories = async (): Promise<MemoryItem[]> => {
+  try {
+    const response = await fetch('/api/memory');
+    if (!response.ok) throw new Error('Failed to fetch memories');
+    const memories = await response.json();
+    return memories.map((m: any) => ({
+      ...m,
+      id: m._id,
+      updatedAt: new Date(m.updatedAt).getTime(),
+      createdAt: new Date(m.createdAt).getTime(),
+    }));
+  } catch (error) {
+    console.error('Database memory load failed:', error);
+    return loadLocalMemories();
+  }
+};
+
+export const saveStoredMemory = async (memory: Partial<MemoryItem>) => {
+  try {
+    const response = await fetch('/api/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(memory),
+    });
+    const saved = await response.json();
+    const mapped = { ...saved, id: saved._id };
+    window.dispatchEvent(new CustomEvent("jarvis-memory-updated", { detail: mapped }));
+    return mapped;
+  } catch (error) {
+    console.error('Failed to save memory:', error);
+  }
+};
+
+export const deleteStoredMemory = async (id: string) => {
+  try {
+    const response = await fetch('/api/memory', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to delete memory:', error);
+    return false;
+  }
+};
+
+export const syncMemoriesWithDatabase = async () => {
+  if (typeof window === "undefined") return;
+  const isMigrated = localStorage.getItem(MEMORY_MIGRATION_KEY);
+  if (isMigrated) return;
+
+  const localMemories = loadLocalMemories();
+  if (localMemories.length === 0) {
+    localStorage.setItem(MEMORY_MIGRATION_KEY, "true");
     return;
   }
 
-  localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(memories));
-  window.dispatchEvent(new CustomEvent("jarvis-memory-updated", { detail: memories }));
+  try {
+    const response = await fetch('/api/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(localMemories),
+    });
+    if (response.ok) {
+      localStorage.setItem(MEMORY_MIGRATION_KEY, "true");
+    }
+  } catch (error) {
+    console.error('Memory migration failed:', error);
+  }
 };
 
 export const summarizeMemoryTitle = (content: string) => {
   const normalized = content.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return "Untitled memory";
-  }
-
+  if (!normalized) return "Untitled memory";
   return normalized.length > 58 ? `${normalized.slice(0, 55)}...` : normalized;
 };
 
 export const parseMemoryTags = (value: string) =>
-  value
-    .split(",")
-    .map((tag) => tag.trim().toLowerCase())
-    .filter(Boolean)
-    .slice(0, 8);
+  value.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean).slice(0, 8);
 
 export const createMemoryItem = ({
   title,
@@ -88,41 +139,23 @@ export const createMemoryItem = ({
   source?: MemorySource;
   tags?: string[];
   enabled?: boolean;
-}): MemoryItem => {
-  const now = Date.now();
-
+}): Omit<MemoryItem, "id" | "createdAt" | "updatedAt"> => {
   return {
-    id: crypto.randomUUID(),
     title: title?.trim() || summarizeMemoryTitle(content),
     content: content.trim(),
     category: category ?? inferMemoryCategory(content),
     source,
     tags,
     enabled,
-    createdAt: now,
-    updatedAt: now,
   };
 };
 
-export const addMemory = (item: Omit<Parameters<typeof createMemoryItem>[0], "enabled"> & { enabled?: boolean }) => {
-  const next = [createMemoryItem(item), ...loadMemories()];
-  saveMemories(next);
-  return next[0];
+export const addMemory = async (item: Parameters<typeof createMemoryItem>[0]) => {
+  const newItem = createMemoryItem(item);
+  return await saveStoredMemory(newItem);
 };
 
-const cleanCapturedMemory = (value: string) =>
-  value
-    .replace(/^[\s"']+|[\s"'.!?]+$/g, "")
-    .replace(/^(?:that|this|it)\s+/i, "")
-    .trim();
-
-const normalizeMemoryCommand = (value: string) =>
-  value
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^[`"“”'‘’]+|[`"“”'‘’]+$/g, "")
-    .trim();
-
+// ... categoryRules and inferMemoryCategory remain the same ...
 const categoryRules: Record<MemoryCategory, RegExp[]> = {
   instruction: [
     /\b(always|never|from now on|going forward|by default)\b/,
@@ -166,15 +199,12 @@ export const inferMemoryCategory = (content: string): MemoryCategory => {
   if (/\b(i want you to|please always|please never)\b/.test(normalized)) {
     scores.instruction += 2;
   }
-
   if (/\b(my name is|call me|my email is|my phone|my birthday)\b/.test(normalized)) {
     scores.profile += 2;
   }
-
   if (/\b(i prefer|my preferred|favorite|favourite)\b/.test(normalized)) {
     scores.preference += 2;
   }
-
   if (/\b(my|our)\s+(project|repo|repository|app|codebase)\b/.test(normalized)) {
     scores.project += 2;
   }
@@ -187,26 +217,17 @@ export const inferMemoryCategory = (content: string): MemoryCategory => {
 };
 
 export const extractMemoryCapture = (text: string): MemoryCapture | null => {
-  const normalized = normalizeMemoryCommand(text);
-  if (!normalized) {
-    return null;
-  }
-
   const patterns = [
     /^(?:please\s+)?(?:remember|memorize|memorise|store|save|note)\s+(?:this|that|it)?\s*(?:in memory|to memory|as memory)?\s*[:,-]?\s*(.+)$/i,
     /^(?:please\s+)?(?:remember|memorize|memorise)\s+that\s+(.+)$/i,
     /^(?:please\s+)?(?:keep|add)\s+(.+?)\s+(?:in|to)\s+(?:your\s+)?memory$/i,
   ];
 
-  const match = patterns.map((pattern) => normalized.match(pattern)).find(Boolean);
-  if (!match?.[1]) {
-    return null;
-  }
+  const match = patterns.map((pattern) => text.match(pattern)).find(Boolean);
+  if (!match?.[1]) return null;
 
-  const content = cleanCapturedMemory(match[1]);
-  if (content.length < 2) {
-    return null;
-  }
+  const content = match[1].trim();
+  if (content.length < 2) return null;
 
   const category = inferMemoryCategory(content);
   return {
@@ -217,19 +238,10 @@ export const extractMemoryCapture = (text: string): MemoryCapture | null => {
   };
 };
 
-export const getEnabledMemoriesForPrompt = () =>
-  loadMemories()
-    .filter((memory) => memory.enabled && memory.content.trim())
-    .slice(0, 24)
-    .map(({ title, content, category, tags }) => ({ title, content, category, tags }));
-
 export const formatMemoriesForPrompt = (
   memories: Array<{ title: string; content: string; category: string; tags: string[] }>
 ) => {
-  if (!memories.length) {
-    return "";
-  }
-
+  if (!memories.length) return "";
   return memories
     .map((memory, index) => {
       const tags = memory.tags.length ? ` Tags: ${memory.tags.join(", ")}.` : "";

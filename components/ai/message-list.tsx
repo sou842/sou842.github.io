@@ -2,7 +2,7 @@
 
 import React from "react";
 import { UIMessage } from "ai";
-import { Brain, Sparkles, Copy, RotateCcw, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Brain, Sparkles, Copy, RotateCcw, ThumbsUp, ThumbsDown, Pencil, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMessageAttachments, getMessageReasoning, getMessageText } from "@/lib/ai/message-utils";
 import { type RegenerateChatMessage } from "@/components/ai/types";
@@ -33,6 +33,7 @@ interface MessageListProps {
   onSaveMemory: (text: string) => void;
   regenerate: RegenerateChatMessage;
   selectedModel: string;
+  onEditMessage?: (id: string, content: string) => void;
 }
 
 export function MessageList({
@@ -42,7 +43,10 @@ export function MessageList({
   onSaveMemory,
   regenerate,
   selectedModel,
+  onEditMessage,
 }: MessageListProps) {
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editingContent, setEditingContent] = React.useState("");
   // Deduplicate messages by ID to prevent React duplicate key warnings
   const uniqueMessages = React.useMemo(() => {
     const seen = new Set<string>();
@@ -87,11 +91,47 @@ export function MessageList({
                   </Reasoning>
                 )}
                 <MessageContent className={message.role === 'user' ? 'group-[.is-user]:bg-[#0A0A0A] group-[.is-user]:text-white/90 group-[.is-user]:rounded-2xl group-[.is-user]:border group-[.is-user]:border-white/5 group-[.is-user]:shadow-2xl' : 'text-white/80'}>
-                  <MessageResponse isAnimating={isLoading && messages[messages.length-1].id === message.id} className="prose prose-invert prose-base max-w-none prose-p:leading-relaxed prose-pre:bg-[#050505] prose-pre:border prose-pre:border-white/5">
-                    {text}
-                  </MessageResponse>
+                  {editingId === message.id ? (
+                    <div className="flex flex-col w-full min-w-[400px] bg-transparent rounded-[2rem] p-0 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                      <textarea
+                        autoFocus
+                        className="w-full bg-transparent border-none text-base text-white/90 outline-none resize-none min-h-[80px] placeholder:text-white/20"
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            onEditMessage?.(message.id, editingContent);
+                            setEditingId(null);
+                          }
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        value={editingContent}
+                      />
+                      <div className="flex justify-end gap-3 mt-4">
+                        <button
+                          className="px-4 py-1.5 rounded-full bg-black text-white text-sm font-medium hover:bg-black/80 transition-all active:scale-95"
+                          onClick={() => setEditingId(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="px-4 py-1.5 rounded-full bg-white text-black text-sm font-medium hover:bg-white/90 transition-all active:scale-95 shadow-lg"
+                          onClick={() => {
+                            onEditMessage?.(message.id, editingContent);
+                            setEditingId(null);
+                          }}
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <MessageResponse isAnimating={isLoading && messages[messages.length-1].id === message.id} className="prose prose-invert prose-base max-w-none prose-p:leading-relaxed prose-pre:bg-[#050505] prose-pre:border prose-pre:border-white/5">
+                      {text}
+                    </MessageResponse>
+                  )}
                   
-                  {messageAttachments.length > 0 && (
+                  {!editingId && messageAttachments.length > 0 && (
                     <Attachments className="mt-6 flex flex-wrap gap-3">
                       {messageAttachments.map((attachment, index) => (
                         <Attachment key={`${message.id}-${index}`} data={{
@@ -119,6 +159,14 @@ export function MessageList({
                     <MessageAction tooltip="Save to memory" onClick={() => onSaveMemory(text)} className="hover:text-indigo-300 hover:bg-indigo-500/10 rounded-full cursor-pointer">
                       <Brain size={13} />
                     </MessageAction>
+                    {message.role === 'user' && !editingId && (
+                      <MessageAction tooltip="Edit message" onClick={() => {
+                        setEditingId(message.id);
+                        setEditingContent(text);
+                      }} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
+                        <Pencil size={13} />
+                      </MessageAction>
+                    )}
                     {message.role === 'assistant' && (
                       <>
                         <MessageAction tooltip="Regenerate response" onClick={() => regenerate({ body: { model: selectedModel } })} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
