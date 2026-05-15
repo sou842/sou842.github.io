@@ -35,16 +35,6 @@ interface MessageListProps {
   selectedModel: string;
 }
 
-export function MessageList({
-  messages,
-  isLoading,
-  copyToClipboard,
-  onSaveMemory,
-  regenerate,
-  selectedModel,
-}: MessageListProps) {
-  return (
-    <>
 const MessageItem = React.memo(({ 
   message, 
   isStreaming, 
@@ -77,7 +67,7 @@ const MessageItem = React.memo(({
                 {getMessageReasoning(message) || (
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="size-1.5 bg-white/30 rounded-full shrink-0" />
+                      <div className={`size-1.5 bg-white/30 rounded-full shrink-0 ${isStreaming ? 'animate-pulse' : ''}`} />
                       <span className="text-xs">Generating response</span>
                     </div>
                     <div className="text-xs opacity-40 ml-4">
