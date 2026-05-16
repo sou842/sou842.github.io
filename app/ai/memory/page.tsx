@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   Brain,
   Check,
+  ChevronDown,
   Menu,
   Pencil,
   Plus,
@@ -14,6 +15,7 @@ import {
 
 import Link from "next/link";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 import {
   createMemoryItem,
@@ -25,6 +27,7 @@ import {
   type MemoryItem,
 } from "@/lib/memory-storage";
 import { useAI } from "../_components/ai-provider";
+import { PageHeader } from "../_components/page-header";
 import { MemoryTable } from "./_components/memory-table";
 
 
@@ -227,88 +230,60 @@ export default function MemoryPage() {
   return (
     <>
       {/* HEADER */}
-
-      <header className="sticky top-0 z-30 border-b border-white/5 bg-black/70 backdrop-blur-xl">
-        <div className="mx-auto max-w-8xl px-5 py-5 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <button
-                  className="md:hidden size-10 rounded-xl border border-white/10 bg-white/3 flex items-center justify-center"
-                  onClick={() =>
-                    setMobileSidebarOpen(true)
-                  }
-                >
-                  <Menu size={18} />
-                </button>
-
-                <div className="size-11 rounded-2xl bg-white/4 border border-white/10 flex items-center justify-center">
-                  <Brain className="size-5 text-indigo-200" />
-                </div>
-
-                <div>
-                  <h1 className="text-lg font-semibold tracking-tight">
-                    Memory
-                  </h1>
-
-                  <p className="text-xs text-white/35">
-                    Manage what Jarvis remembers across conversations
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Link
-              href="/ai"
-              className="h-11 px-5 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white/60 hover:text-white hover:bg-white/[0.05] transition flex items-center"
-            >
-              Back to Chat
-            </Link>
+      <PageHeader
+        icon={<Brain />}
+        title="Memory"
+        subtitle="Manage what Jarvis remembers across conversations"
+        actions={
+          <Link
+            href="/ai"
+            className="h-9 px-4 rounded-full border border-white/10 bg-white/[0.03] text-sm text-white/60 hover:text-white hover:bg-white/[0.05] transition flex items-center shrink-0"
+          >
+            Back to Chat
+          </Link>
+        }
+      >
+        <div className="flex items-center gap-3 w-full">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-white/25" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search memories..."
+              className="h-9 w-full rounded-full border border-white/10 bg-white/5 pl-9 pr-4 text-xs outline-none focus:border-white/20 transition-all"
+            />
           </div>
-
-          {/* FILTERS */}
-
-          <div className="mt-6 flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-white/25" />
-
-              <input
-                value={query}
-                onChange={(e) =>
-                  setQuery(e.target.value)
-                }
-                placeholder="Search memories..."
-                className="h-12 w-full rounded-2xl border border-white/10 bg-[#070707] pl-11 pr-4 text-sm outline-none focus:border-white/20"
-              />
-            </div>
-
-            <select
-              value={categoryFilter}
-              onChange={(e) =>
-                setCategoryFilter(
-                  e.target.value as
-                  | MemoryCategory
-                  | "all"
-                )
-              }
-              className="h-12 rounded-2xl border border-white/10 bg-[#070707] px-4 text-sm outline-none focus:border-white/20"
+          <div className="dropdown dropdown-end">
+            <button
+              tabIndex={0}
+              className="h-9 px-4 rounded-full border border-white/10 bg-white/5 text-xs text-white/60 hover:text-white flex items-center gap-2 transition-all cursor-pointer"
             >
-              <option value="all">
-                All Categories
-              </option>
-
-              {memoryCategories.map((category) => (
-                <option
-                  key={category.id}
-                  value={category.id}
+              {categoryFilter === "all" ? "All Categories" : memoryCategories.find(c => c.id === categoryFilter)?.label}
+              <ChevronDown size={14} className="opacity-40" />
+            </button>
+            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-48 mt-2">
+              <li>
+                <button 
+                  onClick={() => setCategoryFilter("all")}
+                  className={cn("text-xs py-2", categoryFilter === "all" ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5")}
                 >
-                  {category.label}
-                </option>
+                  All Categories
+                </button>
+              </li>
+              {memoryCategories.map((category) => (
+                <li key={category.id}>
+                  <button
+                    onClick={() => setCategoryFilter(category.id)}
+                    className={cn("text-xs py-2", categoryFilter === category.id ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5")}
+                  >
+                    {category.label}
+                  </button>
+                </li>
               ))}
-            </select>
+            </ul>
           </div>
         </div>
-      </header>
+      </PageHeader>
 
       {/* CONTENT */}
 
