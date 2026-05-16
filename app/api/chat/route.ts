@@ -8,7 +8,9 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 import Task from '@/lib/models/Task';
 import Contact from '@/lib/models/Contact';
+import VaultItem from '@/lib/models/VaultItem';
 import { getMessageText } from '@/lib/ai/message-utils';
+import { VAULT_GUIDELINES } from '@/lib/ai/vault-guidelines';
 
 async function getGoogleAccessToken() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -75,7 +77,7 @@ const ALLOWED_MODELS = new Set([
 const memoryCategorySchema = z.enum(['profile', 'preference', 'project', 'fact', 'instruction']);
 const taskStatusSchema = z.enum(['todo', 'in-progress', 'done', 'backlog']);
 const taskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
-
+const vaultItemTypeSchema = z.enum(['spreadsheet', 'note']);
 
 const tools = {
   saveMemory: tool({
@@ -608,6 +610,112 @@ const tools = {
       }
     },
   }),
+
+  getVaultNoteGuidelines: tool({
+    description: "Get detailed technical guidelines for formatting Vault 'note' items (Editor.js JSON blocks). Call this if you need to create or update a note and are unsure about the block structures.",
+    execute: async () => ({ guidelines: VAULT_GUIDELINES.VAULT_NOTE_GUIDELINES }),
+  }),
+
+  getVaultSheetGuidelines: tool({
+    description: "Get detailed technical guidelines for formatting Vault 'spreadsheet' items (array of objects). Call this if you need to create or update a spreadsheet and are unsure about the structure.",
+    execute: async () => ({ guidelines: VAULT_GUIDELINES.VAULT_SHEET_GUIDELINES }),
+  }),
+
+  listVaultItems: tool({
+    description: "List all items in the user's Vault. The Vault stores spreadsheets and notes.",
+    inputSchema: z.object({
+      type: vaultItemTypeSchema.optional().describe('Filter by type (spreadsheet or note)'),
+      search: z.string().optional().describe('Search for items with titles or tags matching this query'),
+    }),
+    execute: async ({ type, search }) => {
+      try {
+        await dbConnect();
+        const filter: any = {};
+        if (type) filter.type = type;
+        if (search) {
+          filter.$text = { $search: search };
+        }
+        // Exclude content for listing to save bandwidth
+        const items = await VaultItem.find(filter, { content: 0 }).sort({ updatedAt: -1 }).limit(50);
+        return { success: true, items: JSON.parse(JSON.stringify(items)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
+  getVaultItem: tool({
+    description: "Get the full content of a specific Vault item (spreadsheet or note) by its ID.",
+    inputSchema: z.object({
+      id: z.string().describe('The MongoDB ID of the Vault item'),
+    }),
+    execute: async ({ id }) => {
+      try {
+        await dbConnect();
+        const item = await VaultItem.findById(id);
+        if (!item) return { success: false, error: "Vault item not found" };
+        return { success: true, item: JSON.parse(JSON.stringify(item)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
+  createVaultItem: tool({
+    description: "Create a new item in the Vault (spreadsheet or note). If you need formatting details, call 'getVaultNoteGuidelines' for notes or 'getVaultSheetGuidelines' for spreadsheets.",
+    inputSchema: z.object({
+      title: z.string().min(1).max(100).describe('Title of the vault item'),
+      type: vaultItemTypeSchema.describe('Type: spreadsheet or note'),
+      content: z.any().describe('Initial content. Use Editor.js blocks for notes or array of objects for spreadsheets.'),
+      tags: z.array(z.string()).default([]).describe('Optional tags'),
+    }),
+    execute: async (data) => {
+      try {
+        await dbConnect();
+        const item = await VaultItem.create(data);
+        return { success: true, item: JSON.parse(JSON.stringify(item)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
+  updateVaultItem: tool({
+    description: "Update an existing Vault item. For formatting details, call 'getVaultNoteGuidelines' for notes or 'getVaultSheetGuidelines' for spreadsheets.",
+    inputSchema: z.object({
+      id: z.string().describe('The MongoDB ID of the Vault item to update'),
+      title: z.string().optional().describe('New title'),
+      content: z.any().optional().describe('New content. Completely replaces existing content.'),
+      tags: z.array(z.string()).optional().describe('Updated tags'),
+    }),
+    execute: async ({ id, ...updateData }) => {
+      try {
+        await dbConnect();
+        const item = await VaultItem.findByIdAndUpdate(id, updateData, { new: true });
+        if (!item) return { success: false, error: "Vault item not found" };
+        return { success: true, item: JSON.parse(JSON.stringify(item)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
+  deleteVaultItem: tool({
+    description: "Delete an item from the Vault. Use with caution.",
+    inputSchema: z.object({
+      id: z.string().describe('The MongoDB ID of the Vault item to delete'),
+    }),
+    execute: async ({ id }) => {
+      try {
+        await dbConnect();
+        const result = await VaultItem.deleteOne({ _id: id });
+        if (result.deletedCount === 0) return { success: false, error: "Vault item not found" };
+        return { success: true, message: "Vault item deleted successfully" };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
 };
 
 export async function POST(req: Request) {
@@ -648,6 +756,7 @@ export async function POST(req: Request) {
       "6. For Gmail: You can access the user's emails. Use 'gmailListMessages' to see their inbox or search for emails, and 'gmailGetMessage' to read the full content of an email. You can help the user summarize threads, find specific info, or keep track of their correspondence.",
       "7. For WhatsApp: You can send messages via Green API. Use 'whatsappSendMessage' to text the user or others from their personal account. Always verify the phone number format (country code + number, e.g., 919903149299). You can also manage contacts using 'saveContact' and 'listContacts'.",
       "8. For WhatsApp Contact Selection: If you see a tag like '@WhatsApp:Name (Phone)' at the start of a message, it is a RECIPIENT OVERRIDE. You MUST call 'whatsappSendMessage' using that phone number for the user's message. Do not mention or include this tag in your final response to the user.",
+      "9. For Vault (Data Storage): The Vault stores spreadsheets (structured data) and notes (unstructured data). Use 'listVaultItems' to browse and 'getVaultItem' to read content. For creating/updating items, use 'getVaultNoteGuidelines' for notes or 'getVaultSheetGuidelines' for spreadsheets if you are unsure about the format. Always save spreadsheets, lists, or notes in the Vault when asked.",
       memoryContext
 
         ? `Use these saved user memories when relevant. Do not mention them unless it helps the answer.\n${memoryContext}`
