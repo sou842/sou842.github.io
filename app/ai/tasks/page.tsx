@@ -62,8 +62,7 @@ export default function TasksPage() {
   const { memories } = useAI();
   const [input, setInput] = React.useState("");
   const [selectedModel, setSelectedModel] = React.useState<string>(mistralModels[0].id);
-  const [modelSelectorOpen, setModelSelectorOpen] = React.useState(false);
-  const [showChatBar, setShowChatBar] = React.useState(true);
+  const [showChatBar, setShowChatBar] = React.useState(false);
   const [showResponse, setShowResponse] = React.useState(false);
 
 

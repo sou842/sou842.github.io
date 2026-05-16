@@ -8,6 +8,7 @@ import {
   Plus,
   Mic,
   AudioLines,
+  ArrowRight,
 } from "lucide-react";
 
 import { type SendChatMessage } from "@/components/ai/types";
@@ -54,7 +55,7 @@ export function EmptyState({ input, setInput, sendMessage, selectedModel }: Empt
       {/* Main Area */}
       <div className="w-full max-w-[860px]">
         {/* Input Container */}
-        <div className="h-[64px] rounded-[32px] bg-[#1f1f1f] border border-white/[0.06] flex items-center px-4 shadow-sm focus-within:border-white/20 transition-colors">
+        <div className="h-[64px] rounded-[32px] bg-white/5 border border-white/6 flex items-center px-4 shadow-sm focus-within:border-white/20 transition-colors">
           {/* Left */}
           <button className="text-white/70 hover:text-white transition p-2">
             <Plus size={20} strokeWidth={2.2} />
@@ -68,7 +69,7 @@ export function EmptyState({ input, setInput, sendMessage, selectedModel }: Empt
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask anything"
-            className="flex-1 bg-transparent border-none outline-none px-2 text-[16px] text-white placeholder:text-white/45 font-normal"
+            className="flex-1 bg-transparent border-none outline-none px-2 text-base text-white placeholder:text-white/45 font-normal"
           />
 
           {/* Right */}
@@ -80,14 +81,14 @@ export function EmptyState({ input, setInput, sendMessage, selectedModel }: Empt
             <button 
               onClick={handleSend}
               disabled={!input.trim()}
-              className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${
+              className={`h-10 w-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                 input.trim() 
                   ? "bg-white text-black hover:scale-105 active:scale-95" 
                   : "bg-white/10 text-white/20 cursor-not-allowed"
               }`}
             >
               {input.trim() ? (
-                <ArrowUp size={20} strokeWidth={2.5} />
+                <ArrowRight size={20} strokeWidth={2.5} />
               ) : (
                 <AudioLines size={18} strokeWidth={2.4} />
               )}
@@ -132,17 +133,7 @@ function QuickActionButton({
   return (
     <button
       onClick={onClick}
-      className="
-        group
-        flex items-center gap-2.5
-        px-5 h-[42px]
-        rounded-full
-        border border-white/[0.10]
-        bg-transparent
-        hover:bg-white/[0.03]
-        hover:border-white/[0.16]
-        transition-all duration-200
-      "
+      className="group flex items-center gap-2.5 px-5 h-[42px] rounded-full border border-white/10 bg-transparent hover:bg-white/3 hover:border-white/16 transition-all duration-200 cursor-pointer"
     >
       <span className="text-white/70 group-hover:text-white transition">
         {icon}

@@ -1,16 +1,16 @@
 "use client";
 
 import React from "react";
-import { 
-  Bot, 
-  Brain, 
-  Database, 
-  FileText, 
-  MessageCircle, 
-  Palette, 
-  PanelLeftClose, 
-  PenTool, 
-  Settings2, 
+import {
+  Bot,
+  Brain,
+  Database,
+  FileText,
+  MessageCircle,
+  Palette,
+  PanelLeftClose,
+  PenTool,
+  Settings2,
   SquarePlus,
   Trash2,
   Pencil,
@@ -93,24 +93,23 @@ export function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#111] bg-[#000000] md:static md:z-10 ${
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        } transition-all duration-300 ease-in-out`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#111] bg-[#000000] md:static md:z-10 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          } transition-all duration-300 ease-in-out`}
         style={{ width: isCollapsed ? 76 : sidebarWidth }}
       >
         {/* Header */}
         <div className={`p-4 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} border-b border-[#111] h-16 shrink-0`}>
           {isCollapsed ? (
-            <button 
+            <button
               onClick={() => setSidebarOpen(true)}
-              className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all"
+              className="w-9 h-9 bg-white/95 rounded-full flex items-center justify-center text-black shrink-0 cursor-pointer"
             >
               <Bot size={20} />
             </button>
           ) : (
             <>
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-8 h-8 bg-white/95 rounded-full flex items-center justify-center text-black shrink-0 shadow-lg shadow-indigo-500/20">
+                <div className="w-8 h-8 bg-white/95 rounded-full flex items-center justify-center text-black shrink-0">
                   <Bot size={18} />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -118,7 +117,7 @@ export function Sidebar({
                   <span className="text-xs text-white/40 font-medium truncate uppercase tracking-wider">Neural Shell</span>
                 </div>
               </div>
-              <button 
+              <button
                 className="p-1.5 text-white/30 hover:text-white hover:bg-white/5 rounded-lg transition-all md:block hidden shrink-0 cursor-pointer"
                 onClick={() => setSidebarOpen(false)}
               >
@@ -131,32 +130,24 @@ export function Sidebar({
         {/* Content */}
         <div className={`flex-1 overflow-y-auto p-3 space-y-8 scrollbar-hide ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
           {/* Workspace Section */}
-          <div className={`space-y-1 ${isCollapsed ? 'w-full flex flex-col items-center' : 'w-full'}`}>
+          <div className={`${isCollapsed ? 'w-full flex flex-col items-center gap-4' : 'w-full flex flex-col gap-1'}`}>
             {!isCollapsed && <div className="px-3 py-2 text-xs font-medium text-white/20">Workspace</div>}
             <button
               onClick={handleNewChat}
-              className={`flex items-center transition-all group cursor-pointer ${
-                isCollapsed 
-                  ? "w-10 h-10 justify-center rounded-xl bg-white/5 hover:bg-white/10" 
-                  : "w-full gap-3 px-3 py-2.5 rounded-xl text-white font-medium text-sm hover:bg-white/10"
-              }`}
+              className={`flex items-center transition-all group cursor-pointer ${isCollapsed
+                ? "w-10 h-10 justify-center rounded-full bg-white/5 hover:bg-white/10"
+                : "w-full gap-3 px-3 py-2.5 rounded-xl text-white font-medium text-sm hover:bg-white/10"
+                }`}
             >
               <SquarePlus size={16} className="text-white/40 group-hover:text-white transition-colors shrink-0" />
               {!isCollapsed && <span>New Chat</span>}
             </button>
             <SidebarNavItem
-              active={pathname === "/ai/memory"}
-              href="/ai/memory"
-              icon={<Brain size={16} />}
-              isCollapsed={isCollapsed}
-              label="Memory"
-            />
-            <SidebarNavItem 
               active={pathname === "/ai/integrations"}
               href="/ai/integrations"
-              icon={<Layers size={16} />} 
+              icon={<Layers size={16} />}
               isCollapsed={isCollapsed}
-              label="Integrations" 
+              label="Integrations"
             />
             <SidebarNavItem
               active={pathname === "/ai/tasks"}
@@ -165,7 +156,20 @@ export function Sidebar({
               isCollapsed={isCollapsed}
               label="Tasks"
             />
-            <SidebarNavItem icon={<PenTool size={16} />} label="Design" isCollapsed={isCollapsed} />
+            <SidebarNavItem
+              active={pathname === "/ai/memory"}
+              href="/ai/memory"
+              icon={<Brain size={16} />}
+              isCollapsed={isCollapsed}
+              label="Memory"
+            />
+            <SidebarNavItem
+              active={pathname === "/ai/vault"}
+              href="/ai/vault"
+              icon={<Database size={16} />}
+              isCollapsed={isCollapsed}
+              label="Vault"
+            />
           </div>
 
           {/* Recents Section */}
@@ -178,14 +182,13 @@ export function Sidebar({
                   .sort((a, b) => b.updatedAt - a.updatedAt)
                   .map((chat) => (
                     <div
-                      className={`group relative flex items-center gap-2 rounded-xl px-3 py-2 transition-all cursor-pointer ${
-                        chat.id === activeChatId ? "bg-white/5 text-white" : "text-white/40 hover:bg-white/[0.02] hover:text-white/80"
-                      }`}
+                      className={`group relative flex items-center gap-2 rounded-xl px-3 py-2 transition-all cursor-pointer ${chat.id === activeChatId ? "bg-white/5 text-white" : "text-white/40 hover:bg-white/[0.02] hover:text-white/80"
+                        }`}
                       key={chat.id}
                       onClick={() => onSelectChat(chat.id)}
                     >
                       <MessageCircle size={18} className={`shrink-0 transition-opacity ${chat.id === activeChatId ? "opacity-100 text-indigo-400" : "opacity-40 group-hover:opacity-70"}`} />
-                      
+
                       {editingId === chat.id ? (
                         <input
                           autoFocus
@@ -212,8 +215,8 @@ export function Sidebar({
                           >
                             <Ellipsis size={14} />
                           </button>
-                          <ul 
-                            className="dropdown-content z-[30] menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-32 mt-2" 
+                          <ul
+                            className="dropdown-content z-[30] menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-32 mt-2"
                             onClick={(e) => e.stopPropagation()}
                             tabIndex={0}
                           >
@@ -254,32 +257,31 @@ export function Sidebar({
         </div>
 
         {/* Footer */}
-        <div className={`p-4 border-t border-[#111] ${isCollapsed ? 'flex flex-col items-center space-y-6' : 'space-y-4'}`}>
-          <button className={`flex items-center transition-all group ${
+        <div className={`p-0 border-t border-[#111] ${isCollapsed ? 'flex flex-col items-center space-y-6' : 'space-y-4'}`}>
+          {/* <button className={`flex items-center transition-all group ${
             isCollapsed ? "justify-center" : "w-full gap-3 px-3 py-2 text-white/40 hover:text-white hover:bg-white/5 rounded-xl"
           }`}>
             <Palette size={18} className={`transition-transform group-hover:rotate-12 ${isCollapsed ? 'text-white/40 hover:text-white' : ''}`} />
             {!isCollapsed && <span className="text-sm font-medium">Theme: Dark</span>}
-          </button>
-          
+          </button> */}
+
           {isCollapsed ? (
-            <div 
+            <div
               onClick={() => setSidebarOpen(true)}
-              className="w-10 h-10 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-[10px] font-bold shadow-inner cursor-pointer hover:bg-indigo-500/20 transition-all"
+              className="w-10 h-10 bg-white/90 text-black rounded-lg flex items-center justify-center text-[10px] font-bold shadow-inner cursor-pointertransition-all"
             >
               SS
             </div>
           ) : (
-            <div className="p-3 bg-[#0A0A0A] border border-[#111] rounded-2xl flex items-center gap-3 group cursor-pointer hover:border-white/10 transition-all">
+            <div className="p-3 rounded-2xl flex items-center gap-3 group cursor-pointer hover:border-white/10 transition-all">
               <div className="relative">
-                <div className="w-9 h-9 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xs font-bold shadow-inner">
+                <div className="w-9 h-9 bg-white/90 text-black rounded-full flex items-center justify-center text-xs font-bold shadow-inner">
                   SS
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-[#0A0A0A] rounded-full shadow-lg"></div>
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-xs font-bold text-white truncate tracking-tight">Sourav Samanta</p>
-                <p className="text-[10px] text-white/30 truncate font-medium">sourav@protocol.io</p>
+                <p className="text-xs font-bold text-white/70 truncate tracking-tight">Sourav Samanta</p>
+                <p className="text-[10px] text-white/30 truncate font-medium">samantasourav732@gmail.com</p>
               </div>
             </div>
           )}
@@ -289,25 +291,23 @@ export function Sidebar({
   );
 }
 
-function SidebarNavItem({ 
-  icon, 
-  label, 
-  active = false, 
+function SidebarNavItem({
+  icon,
+  label,
+  active = false,
   isCollapsed = false,
   href,
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
+}: {
+  icon: React.ReactNode;
+  label: string;
   active?: boolean;
   isCollapsed?: boolean;
   href?: string;
 }) {
   const content = (
-    <div className={`flex items-center transition-all cursor-pointer group ${
-      isCollapsed ? "w-6 h-6 justify-center rounded-xl" : "w-full gap-3 px-3 py-2 rounded-xl"
-    } ${
-      active ? "bg-white/5 text-white" : "text-white/40 hover:bg-white/[0.03] hover:text-white/80"
-    }`}>
+    <div className={`flex items-center transition-all cursor-pointer group ${isCollapsed ? "w-6 h-6 justify-center rounded-xl" : "w-full gap-3 px-3 py-2 rounded-xl"
+      } ${active ? "bg-white/5 text-white" : "text-white/40 hover:bg-white/[0.03] hover:text-white/80"
+      }`}>
       <span className="text-white/40 group-hover:text-white transition-colors shrink-0">{icon}</span>
       {!isCollapsed && <span>{label}</span>}
     </div>

@@ -51,7 +51,7 @@ export function ChatSidePanel({
       ref={setNodeRef}
       className={cn(
         "flex flex-col h-full bg-zinc-950/50 backdrop-blur-3xl border-l border-white/10 relative transition-all duration-300",
-        isOver && "ring-4 ring-indigo-500/30 bg-indigo-500/5"
+        isOver && "bg-white/[0.03]"
       )}
     >
       {/* Header */}
@@ -85,26 +85,21 @@ export function ChatSidePanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 bg-indigo-500/20 backdrop-blur-md flex items-center justify-center p-8 text-center"
+            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-2xl flex items-center justify-center p-8 text-center"
           >
             <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-indigo-600 text-white px-8 py-6 rounded-[2rem] shadow-2xl flex flex-col items-center gap-4 border border-indigo-400/50 relative overflow-hidden group"
+              className="relative flex flex-col items-center gap-6"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50" />
-              <div className="size-16 rounded-2xl bg-white/20 flex items-center justify-center animate-bounce relative z-10">
-                <MessageSquare className="size-8" />
+              <div className="size-24 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.15)]">
+                <MessageSquare className="size-10" />
               </div>
-              <div className="relative z-10">
-                <span className="font-bold text-xl block mb-1">Drop to Focus Task</span>
-                <span className="text-sm text-indigo-100 opacity-90">Jarvis will prioritize this task in the conversation</span>
-              </div>
-              
-              {/* Animated pulse rings */}
-              <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 border-4 border-white/20 rounded-[2rem] animate-ping opacity-20" style={{ animationDuration: '3s' }} />
-                <div className="absolute inset-0 border-4 border-white/10 rounded-[2rem] animate-ping opacity-10" style={{ animationDuration: '4s', animationDelay: '1s' }} />
+              <div className="space-y-1.5">
+                <h3 className="font-semibold text-2xl text-white tracking-tight">Drop to Focus</h3>
+                <p className="text-white/40 text-sm max-w-[200px] leading-relaxed">
+                  Jarvis will prioritize this task in your conversation
+                </p>
               </div>
             </motion.div>
           </motion.div>

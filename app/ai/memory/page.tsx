@@ -229,7 +229,7 @@ export default function MemoryPage() {
       {/* HEADER */}
 
       <header className="sticky top-0 z-30 border-b border-white/5 bg-black/70 backdrop-blur-xl">
-        <div className="mx-auto max-w-8xl px-5 py-5">
+        <div className="mx-auto max-w-8xl px-5 py-5 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
@@ -247,11 +247,11 @@ export default function MemoryPage() {
                 </div>
 
                 <div>
-                  <h1 className="text-2xl font-semibold tracking-tight">
+                  <h1 className="text-lg font-semibold tracking-tight">
                     Memory
                   </h1>
 
-                  <p className="text-sm text-white/35 mt-1">
+                  <p className="text-xs text-white/35">
                     Manage what Jarvis remembers across conversations
                   </p>
                 </div>
@@ -264,37 +264,6 @@ export default function MemoryPage() {
             >
               Back to Chat
             </Link>
-          </div>
-
-          {/* STATS */}
-
-          <div className="grid grid-cols-3 gap-3 mt-6">
-            <div className="rounded-2xl border border-white/10 bg-[#070707] p-4">
-              <div className="text-2xl font-semibold">
-                {enabledCount}
-              </div>
-              <div className="text-xs text-white/35 mt-1">
-                Active Memories
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-[#070707] p-4">
-              <div className="text-2xl font-semibold">
-                {disabledCount}
-              </div>
-              <div className="text-xs text-white/35 mt-1">
-                Disabled
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-[#070707] p-4">
-              <div className="text-2xl font-semibold">
-                {memoryCategories.length}
-              </div>
-              <div className="text-xs text-white/35 mt-1">
-                Categories
-              </div>
-            </div>
           </div>
 
           {/* FILTERS */}
