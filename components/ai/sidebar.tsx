@@ -17,7 +17,8 @@ import {
   Check,
   X,
   Ellipsis,
-  BookOpenCheck
+  BookOpenCheck,
+  Layers
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -150,7 +151,13 @@ export function Sidebar({
               isCollapsed={isCollapsed}
               label="Memory"
             />
-            <SidebarNavItem icon={<Database size={16} />} label="Knowledge" isCollapsed={isCollapsed} />
+            <SidebarNavItem 
+              active={pathname === "/ai/integrations"}
+              href="/ai/integrations"
+              icon={<Layers size={16} />} 
+              isCollapsed={isCollapsed}
+              label="Integrations" 
+            />
             <SidebarNavItem
               active={pathname === "/ai/tasks"}
               href="/ai/tasks"

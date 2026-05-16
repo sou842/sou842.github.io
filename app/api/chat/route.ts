@@ -68,6 +68,7 @@ const tools = {
       status: 'ready_for_client_persist' as const,
     }),
   }),
+
   getWeather: tool({
     description: "Get current weather or forecast for a specific location. Use this when the user asks about weather, temperature, or conditions. If you don't have coordinates, providing a city name as 'location' is sufficient.",
     inputSchema: z.object({
@@ -119,6 +120,7 @@ const tools = {
       }
     },
   }),
+
   getTime: tool({
     description: "Get current date and time for a specific location. Use this when the user asks for the time, date, or day of the week. Defaults to India if no location is specified.",
     inputSchema: z.object({
@@ -211,6 +213,7 @@ const tools = {
       }
     },
   }),
+
   createTask: tool({
     description: "Create a new task in the user's task manager.",
     inputSchema: z.object({
@@ -231,6 +234,7 @@ const tools = {
       }
     },
   }),
+
   updateTask: tool({
     description: "Update an existing task's details, status, or priority. You must have the task ID (usually found via listTasks).",
     inputSchema: z.object({
@@ -253,6 +257,7 @@ const tools = {
       }
     },
   }),
+
   deleteTask: tool({
     description: "Delete a task from the task manager. Use with caution. Always confirm with the user first.",
     inputSchema: z.object({
@@ -270,6 +275,147 @@ const tools = {
     },
   }),
 
+  githubGetUser: tool({
+    description: "Get the authenticated GitHub user's profile information. Use this to find out who the current user is.",
+    inputSchema: z.object({}),
+    execute: async () => {
+      const res = await fetch("https://api.github.com/user", {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+      if (!res.ok) return { error: `GitHub API error: ${res.statusText}` };
+      return await res.json();
+    },
+  }),
+
+  githubListRepos: tool({
+    description: "List the user's GitHub repositories.",
+    inputSchema: z.object({
+      sort: z.enum(["created", "updated", "pushed", "full_name"]).default("updated"),
+      per_page: z.number().max(100).default(30),
+    }),
+    execute: async ({ sort, per_page }) => {
+      const res = await fetch(`https://api.github.com/user/repos?sort=${sort}&per_page=${per_page}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+      if (!res.ok) return { error: `GitHub API error: ${res.statusText}` };
+      const repos = await res.json();
+      return repos.map((repo: any) => ({
+        name: repo.full_name,
+        description: repo.description,
+        url: repo.html_url,
+        stars: repo.stargazers_count,
+        language: repo.language,
+        updated_at: repo.updated_at,
+      }));
+    },
+  }),
+
+  githubGetRepo: tool({
+    description: "Get detailed information about a specific GitHub repository.",
+    inputSchema: z.object({
+      owner: z.string().describe("The account owner of the repository. The name is not case sensitive."),
+      repo: z.string().describe("The name of the repository. The name is not case sensitive."),
+    }),
+    execute: async ({ owner, repo }) => {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+      if (!res.ok) return { error: `GitHub API error: ${res.statusText}` };
+      return await res.json();
+    },
+  }),
+
+  githubReadFile: tool({
+    description: "Read the content of a file from a GitHub repository. Useful for analyzing code.",
+    inputSchema: z.object({
+      owner: z.string(),
+      repo: z.string(),
+      path: z.string().describe("The file path (e.g., 'README.md' or 'src/index.ts')"),
+      ref: z.string().optional().describe("The name of the commit/branch/tag. Default: the repository's default branch."),
+    }),
+    execute: async ({ owner, repo, path, ref }) => {
+      let url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+      if (ref) url += `?ref=${ref}`;
+      
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+      if (!res.ok) return { error: `GitHub API error: ${res.statusText}` };
+      const data = await res.json();
+      
+      if (data.type === 'file' && data.content) {
+        const content = Buffer.from(data.content, 'base64').toString('utf8');
+        return { content, size: data.size, name: data.name };
+      }
+      return { error: "The path did not point to a single file, or it was too large." };
+    },
+  }),
+
+  githubSearchCode: tool({
+    description: "Search for code across GitHub repositories.",
+    inputSchema: z.object({
+      q: z.string().describe("The query contains one or more search keywords and qualifiers. (e.g., 'addClass user:mozilla')"),
+      per_page: z.number().max(100).default(10),
+    }),
+    execute: async ({ q, per_page }) => {
+      const res = await fetch(`https://api.github.com/search/code?q=${encodeURIComponent(q)}&per_page=${per_page}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+      if (!res.ok) return { error: `GitHub API error: ${res.statusText}` };
+      const data = await res.json();
+      return data.items.map((item: any) => ({
+        name: item.name,
+        path: item.path,
+        repo: item.repository.full_name,
+        url: item.html_url,
+      }));
+    },
+  }),
+
+  githubListCommits: tool({
+    description: "List commits for a specific GitHub repository. Use this to see recent changes or find commit details.",
+    inputSchema: z.object({
+      owner: z.string(),
+      repo: z.string(),
+      per_page: z.number().max(100).default(10),
+      sha: z.string().optional().describe("SHA or branch name to start listing commits from."),
+    }),
+    execute: async ({ owner, repo, per_page, sha }) => {
+      let url = `https://api.github.com/repos/${owner}/${repo}/commits?per_page=${per_page}`;
+      if (sha) url += `&sha=${sha}`;
+      
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+      if (!res.ok) return { error: `GitHub API error: ${res.statusText}` };
+      const commits = await res.json();
+      return commits.map((c: any) => ({
+        sha: c.sha,
+        message: c.commit.message,
+        author: c.commit.author.name,
+        date: c.commit.author.date,
+        url: c.html_url,
+      }));
+    },
+  }),
 };
 
 export async function POST(req: Request) {
@@ -306,6 +452,7 @@ export async function POST(req: Request) {
       "2. For weather: To get weather, you need coordinates. Search memories for the user's location/city. If not found, ask the user for their location. Once you have a city name or coordinates, call 'getWeather'.",
       "3. For tasks: You can manage the user's tasks. Use 'listTasks' to see what's on their plate, 'createTask' to add new ones, 'updateTask' to change details or status, and 'deleteTask' to remove them. Always confirm with the user before deleting.",
       "4. For date & time: Use 'getTime' to get the current date or time for any location. Default is India. If the user asks for the current time or date without specifying a city, call 'getTime' with no arguments. Be specific with city names (e.g., 'London, UK') to avoid ambiguity.",
+      "5. For GitHub: You have access to the user's GitHub account via a Personal Access Token. Use 'githubGetUser' to see their profile, 'githubListRepos' to list projects, 'githubGetRepo' for details, 'githubReadFile' to analyze code, and 'githubListCommits' to see recent changes or commit history. If you need to search for something across repos, use 'githubSearchCode'. You can help the user manage their repositories, analyze their code, or explain project structures.",
       memoryContext
 
         ? `Use these saved user memories when relevant. Do not mention them unless it helps the answer.\n${memoryContext}`
