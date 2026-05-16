@@ -372,6 +372,82 @@ const tools = {
     },
   }),
 
+  updateScheduleTask: tool({
+    description: "Update an existing schedule task by id. Use listScheduleTasks first to find the correct id. Do not create a new task when user asks to edit/update.",
+    inputSchema: z.object({
+      id: z.string().describe('The MongoDB ID of the schedule task to update'),
+      title: z.string().min(1).max(140).optional(),
+      actionType: scheduleActionTypeSchema.optional(),
+      payload: z.object({
+        phone: z.string().optional(),
+        message: z.string().optional(),
+        city: z.string().optional(),
+        messagePrefix: z.string().optional(),
+      }).optional(),
+      scheduleType: scheduleTypeSchema.optional(),
+      runAt: z.string().optional(),
+      intervalMinutes: z.number().int().positive().optional(),
+      timezone: z.string().optional(),
+      status: scheduleStatusSchema.optional(),
+    }),
+    execute: async ({ id, ...updateData }) => {
+      try {
+        await dbConnect();
+        const existing = await ScheduleTask.findById(id);
+        if (!existing) return { success: false, error: "Schedule task not found" };
+
+        const normalizedPayload = updateData.payload
+          ? {
+              ...updateData.payload,
+              ...(updateData.payload.phone ? { phone: cleanPhone(String(updateData.payload.phone)) } : {}),
+            }
+          : undefined;
+
+        const merged: any = {
+          ...existing.toObject(),
+          ...updateData,
+          ...(normalizedPayload ? { payload: { ...existing.payload, ...normalizedPayload } } : {}),
+          ...(updateData.runAt !== undefined ? { runAt: updateData.runAt ? new Date(updateData.runAt) : undefined } : {}),
+        };
+
+        const shouldRecomputeNextRun =
+          updateData.scheduleType !== undefined ||
+          updateData.runAt !== undefined ||
+          updateData.intervalMinutes !== undefined;
+
+        if (shouldRecomputeNextRun) {
+          merged.nextRunAt = computeNextRunAt(merged);
+        }
+
+        const task = await ScheduleTask.findByIdAndUpdate(id, merged, {
+          new: true,
+          runValidators: true,
+        });
+
+        return { success: true, task: JSON.parse(JSON.stringify(task)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
+  deleteScheduleTask: tool({
+    description: "Delete a schedule task by id. Use only when user clearly asks to delete/remove it.",
+    inputSchema: z.object({
+      id: z.string().describe('The MongoDB ID of the schedule task to delete'),
+    }),
+    execute: async ({ id }) => {
+      try {
+        await dbConnect();
+        const result = await ScheduleTask.deleteOne({ _id: id });
+        if (result.deletedCount === 0) return { success: false, error: "Schedule task not found" };
+        return { success: true, message: "Schedule task deleted successfully" };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
   githubGetUser: tool({
     description: "Get the authenticated GitHub user's profile information. Use this to find out who the current user is.",
     inputSchema: z.object({}),
@@ -806,13 +882,15 @@ export async function POST(req: Request) {
     }
 
     const memoryContext = formatMemoriesForPrompt(memories);
+    const now = new Date();
     const systemPrompt = [
       "You are Jarvis, a helpful and sophisticated AI assistant. You are polite, efficient, and have a slight British flair, similar to Tony Stark's assistant. You help users with coding, analysis, and general tasks.",
+      `Current Time Context: ${now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} (Asia/Kolkata). Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' })}. Use this current time as the source of truth for scheduling and relative dates/times (e.g. "tomorrow", "next Tuesday", etc).`,
       "Tool & Memory policy:",
       "1. To remember information: call 'saveMemory' when explicitly asked to remember/memorize/store facts. Pick categories carefully.",
       "2. For weather: To get weather, you need coordinates. Search memories for the user's location/city. If not found, ask the user for their location. Once you have a city name or coordinates, call 'getWeather'.",
       "3. For tasks: You can manage the user's tasks. Use 'listTasks' to see what's on their plate, 'createTask' to add new ones, 'updateTask' to change details or status, and 'deleteTask' to remove them. Always confirm with the user before deleting.",
-      "3b. For schedule tasks: Use 'createScheduleTask' and 'listScheduleTasks'. Never claim a schedule task was created unless the tool returns success=true and includes the created task id.",
+      "3b. For schedule tasks: Use 'listScheduleTasks' first, then use 'updateScheduleTask' for edits and 'deleteScheduleTask' for deletion. Use 'createScheduleTask' only when user explicitly asks to create a new schedule task. Never claim create/update/delete succeeded unless tool result has success=true.",
       "4. For date & time: Use 'getTime' to get the current date or time for any location. Default is India. If the user asks for the current time or date without specifying a city, call 'getTime' with no arguments. Be specific with city names (e.g., 'London, UK') to avoid ambiguity.",
       "5. For GitHub: You have access to the user's GitHub account via a Personal Access Token. Use 'githubGetUser' to see their profile, 'githubListRepos' to list projects, 'githubGetRepo' for details, 'githubReadFile' to analyze code, and 'githubListCommits' to see recent changes or commit history. If you need to search for something across repos, use 'githubSearchCode'. You can help the user manage their repositories, analyze their code, or explain project structures.",
       "6. For Gmail: You can access the user's emails. Use 'gmailListMessages' to see their inbox or search for emails, and 'gmailGetMessage' to read the full content of an email. You can help the user summarize threads, find specific info, or keep track of their correspondence.",

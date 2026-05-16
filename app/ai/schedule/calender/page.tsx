@@ -19,7 +19,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, ListTodo } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAI } from "../../_components/ai-provider";
 import { PageHeader } from "../../_components/page-header";
 import { Button } from "@/components/ui/button";
@@ -43,12 +43,14 @@ type ScheduleTask = {
 function estimateRunsForDay(task: ScheduleTask, day: Date) {
   const dayStart = startOfDay(day);
   const dayEnd = endOfDay(day);
+  const dayKey = format(day, "yyyy-MM-dd");
 
   if (task.scheduleType === "one_time") {
-    const at = task.runAt || task.nextRunAt;
+    const at = task.runAt || task.nextRunAt || task.createdAt;
     if (!at) return 0;
     const run = new Date(at);
-    return run >= dayStart && run <= dayEnd ? 1 : 0;
+    if (Number.isNaN(run.getTime())) return 0;
+    return format(run, "yyyy-MM-dd") === dayKey ? 1 : 0;
   }
 
   if (task.status !== "active") return 0;
@@ -67,9 +69,29 @@ function estimateRunsForDay(task: ScheduleTask, day: Date) {
   return Math.floor(minutes / task.intervalMinutes) + 1;
 }
 
+function occursOnDay(task: ScheduleTask, day: Date) {
+  const dayEnd = endOfDay(day);
+  const dayKey = format(day, "yyyy-MM-dd");
+
+  if (task.scheduleType === "one_time") {
+    const at = task.runAt || task.nextRunAt || task.createdAt;
+    if (!at) return false;
+    const run = new Date(at);
+    if (Number.isNaN(run.getTime())) return false;
+    return format(run, "yyyy-MM-dd") === dayKey;
+  }
+
+  const seed = task.runAt || task.createdAt || task.nextRunAt;
+  if (!seed) return false;
+  const first = new Date(seed);
+  if (Number.isNaN(first.getTime())) return false;
+  return first <= dayEnd;
+}
+
 export default function ScheduleCalenderPage() {
-  const { setMobileSidebarOpen } = useAI();
+  useAI();
   const [viewMonth, setViewMonth] = React.useState(() => startOfMonth(new Date()));
+  const [selectedDay, setSelectedDay] = React.useState<Date>(() => new Date());
 
   const { data } = useSWR("/api/schedule/tasks", fetcher);
   const tasks: ScheduleTask[] = data?.data || [];
@@ -92,8 +114,9 @@ export default function ScheduleCalenderPage() {
       let totalRuns = 0;
 
       for (const task of tasks) {
-        const count = estimateRunsForDay(task, day);
-        if (count > 0) {
+        const isScheduledForDay = occursOnDay(task, day);
+        if (isScheduledForDay) {
+          const count = estimateRunsForDay(task, day);
           taskHits.push(task);
           totalRuns += count;
         }
@@ -110,6 +133,13 @@ export default function ScheduleCalenderPage() {
       .filter((d) => isSameMonth(d, viewMonth))
       .reduce((acc, d) => acc + (taskMap.get(format(d, "yyyy-MM-dd"))?.runs || 0), 0);
   }, [days, viewMonth, taskMap]);
+
+  const selectedDayKey = format(selectedDay, "yyyy-MM-dd");
+  const selectedDayInfo = taskMap.get(selectedDayKey) || { tasks: [], runs: 0 };
+  const selectedTaskDetails = selectedDayInfo.tasks.map((task) => ({
+    task,
+    runs: estimateRunsForDay(task, selectedDay),
+  }));
 
   return (
     <div className="flex h-screen relative overflow-hidden">
@@ -144,18 +174,19 @@ export default function ScheduleCalenderPage() {
               </div>
             </div>
 
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="rounded-lg border border-[#2d3445] bg-[#171b25] overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d3445] bg-[#1c2130]">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-md border-[#3a4258] bg-[#252c3c] text-white hover:bg-[#2e3649]" onClick={() => setViewMonth(subMonths(viewMonth, 1))}>
+                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-full border-[#3a4258] bg-[#252c3c] text-white hover:bg-[#2e3649]" onClick={() => setViewMonth(subMonths(viewMonth, 1))}>
                     <ChevronLeft className="size-4" />
                   </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-md border-[#3a4258] bg-[#252c3c] text-white hover:bg-[#2e3649]" onClick={() => setViewMonth(addMonths(viewMonth, 1))}>
+                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-full border-[#3a4258] bg-[#252c3c] text-white hover:bg-[#2e3649]" onClick={() => setViewMonth(addMonths(viewMonth, 1))}>
                     <ChevronRight className="size-4" />
                   </Button>
                   <h2 className="ml-2 text-sm font-semibold text-white">{format(viewMonth, "MMMM yyyy")}</h2>
                 </div>
-                <Button variant="outline" className="h-8 rounded-md border-[#3a4258] bg-[#252c3c] text-white hover:bg-[#2e3649]" onClick={() => setViewMonth(startOfMonth(new Date()))}>Today</Button>
+                <Button variant="outline" className="h-8 rounded-full border-[#3a4258] bg-[#252c3c] text-white hover:bg-[#2e3649]" onClick={() => setViewMonth(startOfMonth(new Date()))}>Today</Button>
               </div>
 
               <div className="grid grid-cols-7 border-b border-[#2d3445] bg-[#202636]">
@@ -172,12 +203,14 @@ export default function ScheduleCalenderPage() {
                       const dayInfo = taskMap.get(key) || { tasks: [], runs: 0 };
                       const inMonth = isSameMonth(day, viewMonth);
                       return (
-                        <div
+                        <button
                           key={key}
+                          onClick={() => setSelectedDay(day)}
                           className={cn(
-                            "min-h-32 border-r border-b border-[#2d3445] p-2.5 transition-colors last:border-r-0",
+                            "min-h-32 w-full text-left border-r border-b border-[#2d3445] p-2.5 transition-colors last:border-r-0",
                             inMonth ? "bg-[#171b25]" : "bg-[#121620]",
-                            isToday(day) && "bg-[#1d2a47]"
+                            isToday(day) && "bg-[#1d2a47]",
+                            key === selectedDayKey && "ring-1 ring-inset ring-[#77a9ff]"
                           )}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -197,12 +230,43 @@ export default function ScheduleCalenderPage() {
                               <div className="text-[10px] text-[#9ba9c4]">+{dayInfo.tasks.length - 2} more</div>
                             )}
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                 ))}
               </div>
+            </div>
+            <div className="rounded-lg border border-[#2d3445] bg-[#1a1f2b] p-4 h-fit sticky top-4">
+              <h3 className="text-sm font-semibold text-white">{format(selectedDay, "EEEE, MMM d, yyyy")}</h3>
+              <p className="text-xs text-[#9ba9c4] mt-1">{selectedDayInfo.runs} estimated runs</p>
+
+              {selectedTaskDetails.length === 0 ? (
+                <p className="text-xs text-[#9ba9c4] mt-4">No scheduled tasks for this day.</p>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {selectedTaskDetails.map(({ task, runs }) => (
+                    <div key={`${task._id}-${selectedDayKey}`} className="rounded-md border border-[#3a4258] bg-[#20283a] p-2.5">
+                      <p className="text-xs text-white font-medium truncate">{task.title}</p>
+                      <div className="mt-1 space-y-1 text-[11px] text-[#c3d0e8]">
+                        <p>Runs: {runs}</p>
+                        <p>Type: {task.scheduleType === "one_time" ? "One-time" : `Every ${task.intervalMinutes || "?"} min`}</p>
+                        <p>Status: <span className="capitalize">{task.status}</span></p>
+                        <p>
+                          Time: {task.scheduleType === "one_time"
+                            ? task.runAt
+                              ? format(new Date(task.runAt), "HH:mm")
+                              : "-"
+                            : task.nextRunAt
+                              ? `Next ${format(new Date(task.nextRunAt), "HH:mm")}`
+                              : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             </div>
           </div>
         </div>
