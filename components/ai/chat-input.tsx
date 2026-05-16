@@ -155,7 +155,7 @@ export function ChatInput({
 
   const selectContact = (contact: any) => {
     // Remove the @w: trigger from input
-    const newInput = input.replace(/@w:\w*$/, '');
+    const newInput = input?.replace(/@w:\w*$/, '');
     setInput(newInput);
     setSelectedContact(contact);
     setShowContactSelector(false);
@@ -329,7 +329,7 @@ export function ChatInput({
             </PromptInputTools>
             <PromptInputSubmit
               className={`transition-all duration-200 rounded-lg size-8 flex items-center justify-center ${
-                input.trim() || isLoading || selectedContact
+                input?.trim() || isLoading || selectedContact
                   ? "bg-[#007AFF] text-white shadow-lg shadow-blue-500/20" 
                   : "bg-white/5 text-white/20"
               }`}

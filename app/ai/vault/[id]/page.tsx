@@ -11,6 +11,12 @@ import { SpreadsheetEditor } from "../_components/spreadsheet-editor";
 import { PageHeader } from "../../_components/page-header";
 import { useAI } from "../../_components/ai-provider";
 import { Button } from "@/components/ui/button";
+import { useChat } from "@ai-sdk/react";
+import { VaultChatSidePanel } from "../_components/vault-chat-side-panel";
+import { mistralModels } from "@/components/ai/chat-input";
+import { motion, AnimatePresence } from "motion/react";
+import { MessageSquare, Bot, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((res) => {
   if (!res.ok) throw new Error('Failed to fetch');
@@ -31,6 +37,88 @@ export default function VaultItemPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>(mistralModels[0].id);
+  const [input, setInput] = useState("");
+  const { memories } = useAI();
+
+  const chat = useChat({
+    id: `vault-item-${id}`,
+    initialMessages: [],
+    onFinish: () => {
+      // Potentially refresh data if AI edited the item (though tools are better for that)
+    },
+    onError: (err) => {
+      console.error("Chat error:", err);
+      toast.error("Chat request failed");
+    },
+  });
+
+  const { messages, status, regenerate } = chat;
+  const sendMessage = (chat as any).sendMessage || (chat as any).append;
+  const isChatLoading = status === "submitted" || status === "streaming";
+
+  const sendMessageWithContext = async (payload: any, options?: any) => {
+    const enabledMemories = memories
+      .filter((m) => m.enabled && m.content.trim())
+      .slice(0, 24)
+      .map(({ title, content, category, tags }) => ({ title, content, category, tags }));
+
+    const itemContext = data?.item ? `
+CURRENT ITEM CONTEXT:
+Type: ${data.item.type}
+Title: ${data.item.title}
+Tags: ${data.item.tags?.join(", ") || "None"}
+Content Summary: ${data.item.type === "note" ? "A document with multiple blocks." : `A spreadsheet with ${data.item.content?.length || 0} rows.`}
+` : "";
+
+    await sendMessage(payload, {
+      ...options,
+      body: {
+        ...options?.body,
+        memories: enabledMemories,
+        systemPrompt: `You are Jarvis, assisting the user with a specific item in their Vault. 
+Help them analyze, summarize, or edit this data. You have tools to update the vault item if needed.
+
+${itemContext}
+
+Prioritize actions and responses related to this item.`,
+      },
+    });
+  };
+
+  const regenerateWithContext = (options?: any) => {
+    const enabledMemories = memories
+      .filter((m) => m.enabled && m.content.trim())
+      .slice(0, 24)
+      .map(({ title, content, category, tags }) => ({ title, content, category, tags }));
+
+    const itemContext = data?.item ? `
+CURRENT ITEM CONTEXT:
+Type: ${data.item.type}
+Title: ${data.item.title}
+Tags: ${data.item.tags?.join(", ") || "None"}
+Content Summary: ${data.item.type === "note" ? "A document with multiple blocks." : `A spreadsheet with ${data.item.content?.length || 0} rows.`}
+` : "";
+
+    regenerate({
+      ...options,
+      body: {
+        ...options?.body,
+        memories: enabledMemories,
+        systemPrompt: `You are Jarvis, assisting the user with a specific item in their Vault. 
+Help them analyze, summarize, or edit this data. You have tools to update the vault item if needed.
+
+${itemContext}
+
+Prioritize actions and responses related to this item.`,
+      },
+    });
+  };
+
+  const handleClearChat = () => {
+    chat.setMessages([]);
+  };
 
   useEffect(() => {
     if (data?.item) {
@@ -104,12 +192,15 @@ export default function VaultItemPage() {
         actions={
           <div className="flex items-center gap-1.5">
             <Button
-              onClick={handleDelete}
+              onClick={() => setShowChat(!showChat)}
               variant="outline"
-              className="h-9 w-9 rounded-full text-white/20 hover:text-red-500 border-red-500/20 hover:bg-red-500/10 transition cursor-pointer"
-              title="Delete item"
+              className={cn(
+                "h-9 px-4 rounded-full transition-all flex items-center gap-2 border-white/10",
+                showChat ? "bg-white/10 text-white border-white/30" : "text-white/40 hover:text-white hover:bg-white/5 border-transparent"
+              )}
             >
-              <Trash2 size={16} className="text-red-400/40" />
+              <MessageSquare size={16} />
+              <span className="hidden sm:inline">Chat</span>
             </Button>
             
             <button
@@ -124,29 +215,57 @@ export default function VaultItemPage() {
         }
       />
 
-      {/* CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto bg-[#070707] relative">
-        {isLoading || content === null ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="size-8 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-          </div>
-        ) : (
-          <div className="h-full w-full">
-            {data.item.type === "note" ? (
-              <NoteEditor 
-                key={id}
-                initialData={content} 
-                onChange={setContent} 
+      {/* CONTENT AREA & CHAT */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+        <div className="flex-1 overflow-y-auto bg-[#070707] relative">
+          {isLoading || content === null ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="size-8 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+            </div>
+          ) : (
+            <div className="h-full w-full">
+              {data.item.type === "note" ? (
+                <NoteEditor 
+                  key={id}
+                  initialData={content} 
+                  onChange={setContent} 
+                />
+              ) : (
+                <SpreadsheetEditor 
+                  key={id}
+                  initialData={content} 
+                  onChange={setContent} 
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {showChat && (
+            <motion.div
+              initial={{ x: 400, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 400, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="w-[400px] shrink-0 h-full z-40 relative shadow-2xl border-l border-white/5"
+            >
+              <VaultChatSidePanel
+                messages={messages}
+                input={input}
+                setInput={setInput}
+                isLoading={isChatLoading}
+                sendMessage={sendMessageWithContext}
+                regenerate={regenerateWithContext}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                onClose={() => setShowChat(false)}
+                onClearChat={handleClearChat}
+                itemTitle={title || "Untitled Item"}
               />
-            ) : (
-              <SpreadsheetEditor 
-                key={id}
-                initialData={content} 
-                onChange={setContent} 
-              />
-            )}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

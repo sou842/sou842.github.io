@@ -65,6 +65,7 @@ const chatRequestSchema = z.object({
     tags: z.array(z.string()).default([]),
   })).optional(),
   messages: z.array(z.custom<UIMessage>()).min(1),
+  systemPrompt: z.string().optional(),
 });
 
 const ALLOWED_MODELS = new Set([
@@ -726,7 +727,7 @@ export async function POST(req: Request) {
       return new Response('Invalid request payload', { status: 400 });
     }
 
-    const { messages, chatId, memories = [], model: requestedModel } = parsed.data;
+    const { messages, chatId, memories = [], model: requestedModel, systemPrompt: clientSystemPrompt } = parsed.data;
 
     const validChatId = chatId;
 
@@ -765,6 +766,8 @@ export async function POST(req: Request) {
 
     ].filter(Boolean).join("\n\n");
 
+    const finalSystemPrompt = clientSystemPrompt || systemPrompt;
+
     const normalizedMessages = (messages || []).map((m: any) => ({
       ...m,
       parts: m.parts || [{ type: 'text', text: String(m.content || '') }]
@@ -774,7 +777,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: provider(model),
       messages: modelMessages.length > 0 ? modelMessages : [{ role: 'user', content: ' ' }],
-      system: systemPrompt,
+      system: finalSystemPrompt,
       tools,
       stopWhen: stepCountIs(10),
       onFinish: async ({ text, toolResults }) => {
