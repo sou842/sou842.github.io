@@ -336,7 +336,7 @@ const MessageRow = React.memo(function MessageRow({
               )}
               {message.role === 'assistant' && (
                 <>
-                  <MessageAction tooltip="Regenerate response" onClick={() => regenerate({ body: { model: selectedModel } })} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
+                  <MessageAction tooltip="Try again" onClick={() => regenerate({ body: { model: selectedModel } })} className="hover:text-primary hover:bg-primary/10 rounded-full cursor-pointer">
                     <RotateCcw size={13} />
                   </MessageAction>
                   <div className="divider divider-horizontal mx-0 w-px opacity-10 py-1"></div>

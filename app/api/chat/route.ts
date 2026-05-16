@@ -7,7 +7,37 @@ import { formatMemoriesForPrompt } from '@/lib/memory-storage';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import Task from '@/lib/models/Task';
+import Contact from '@/lib/models/Contact';
 import { getMessageText } from '@/lib/ai/message-utils';
+
+async function getGoogleAccessToken() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("Missing Google OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REFRESH_TOKEN)");
+  }
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Failed to refresh Google access token: ${JSON.stringify(error)}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
 
 
 // Allow streaming responses up to 30 seconds
@@ -416,6 +446,164 @@ const tools = {
       }));
     },
   }),
+
+  gmailListMessages: tool({
+    description: "List the user's Gmail messages. You can provide a search query (e.g., 'from:github' or 'is:unread').",
+    inputSchema: z.object({
+      q: z.string().optional().describe("Gmail search query (e.g., 'from:someone@example.com' or 'has:attachment')"),
+      maxResults: z.number().max(50).default(10),
+    }),
+    execute: async ({ q, maxResults }) => {
+      try {
+        const token = await getGoogleAccessToken();
+        let url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}`;
+        if (q) url += `&q=${encodeURIComponent(q)}`;
+
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) return { error: `Gmail API error: ${res.statusText}` };
+        const data = await res.json();
+        
+        if (!data.messages) return { messages: [], total: 0 };
+
+        const messages = await Promise.all(
+          data.messages.map(async (m: any) => {
+            const detailRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=minimal`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const detail = await detailRes.json();
+            return {
+              id: detail.id,
+              snippet: detail.snippet,
+              threadId: detail.threadId,
+            };
+          })
+        );
+
+        return { messages, total: data.resultSizeEstimate };
+      } catch (error: any) {
+        return { error: error.message };
+      }
+    },
+  }),
+
+  gmailGetMessage: tool({
+    description: "Get the full content of a specific Gmail message using its ID.",
+    inputSchema: z.object({
+      id: z.string().describe("The Gmail message ID."),
+    }),
+    execute: async ({ id }) => {
+      try {
+        const token = await getGoogleAccessToken();
+        const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) return { error: `Gmail API error: ${res.statusText}` };
+        const data = await res.json();
+        
+        const headers = data.payload.headers;
+        const subject = headers.find((h: any) => h.name === 'Subject')?.value;
+        const from = headers.find((h: any) => h.name === 'From')?.value;
+        const date = headers.find((h: any) => h.name === 'Date')?.value;
+
+        let body = "";
+        if (data.payload.parts) {
+          const part = data.payload.parts.find((p: any) => p.mimeType === 'text/plain') || data.payload.parts[0];
+          if (part && part.body && part.body.data) {
+            body = Buffer.from(part.body.data, 'base64').toString('utf8');
+          }
+        } else if (data.payload.body && data.payload.body.data) {
+          body = Buffer.from(data.payload.body.data, 'base64').toString('utf8');
+        }
+
+        return { id, subject, from, date, body, snippet: data.snippet };
+      } catch (error: any) {
+        return { error: error.message };
+      }
+    },
+  }),
+
+  whatsappSendMessage: tool({
+    description: "Send a WhatsApp message to a specific number using Green API. Use this when the user asks you to text or message someone on WhatsApp.",
+    inputSchema: z.object({
+      to: z.string().describe("The recipient's phone number with country code (e.g., '919903149299')"),
+      message: z.string().describe("The content of the WhatsApp message."),
+    }),
+    execute: async ({ to, message }) => {
+      console.log(`WhatsApp tool called: to=${to}, message=${message}`);
+      try {
+        const idInstance = process.env.GREEN_API_ID_INSTANCE;
+        const apiTokenInstance = process.env.GREEN_API_TOKEN_INSTANCE;
+
+        if (!idInstance || !apiTokenInstance) {
+          return { error: "Missing Green API credentials (GREEN_API_ID_INSTANCE or GREEN_API_TOKEN_INSTANCE)" };
+        }
+
+        // Clean number: remove '+', 'whatsapp:', and any spaces
+        const cleanNumber = to.replace(/[^0-9]/g, '');
+        const chatId = `${cleanNumber}@c.us`;
+
+        const res = await fetch(`https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiTokenInstance}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chatId,
+            message,
+          }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          return { error: `Green API error: ${error.message || res.statusText}` };
+        }
+
+        const data = await res.json();
+        return { success: true, idMessage: data.idMessage };
+      } catch (error: any) {
+        return { error: error.message };
+      }
+    },
+  }),
+
+  saveContact: tool({
+    description: "Save a WhatsApp contact (name and phone number) to the database.",
+    inputSchema: z.object({
+      name: z.string().describe("The name of the contact."),
+      phone: z.string().describe("The WhatsApp phone number with country code (e.g., '919903149299')."),
+    }),
+    execute: async ({ name, phone }) => {
+      try {
+        await dbConnect();
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        const contact = await Contact.findOneAndUpdate(
+          { phone: cleanPhone },
+          { name, phone: cleanPhone },
+          { upsert: true, new: true }
+        );
+        return { success: true, contact };
+      } catch (error: any) {
+        return { error: error.message };
+      }
+    },
+  }),
+
+  listContacts: tool({
+    description: "List all saved WhatsApp contacts.",
+    execute: async () => {
+      try {
+        await dbConnect();
+        const contacts = await Contact.find({}).sort({ name: 1 });
+        return { contacts };
+      } catch (error: any) {
+        return { error: error.message };
+      }
+    },
+  }),
 };
 
 export async function POST(req: Request) {
@@ -453,6 +641,9 @@ export async function POST(req: Request) {
       "3. For tasks: You can manage the user's tasks. Use 'listTasks' to see what's on their plate, 'createTask' to add new ones, 'updateTask' to change details or status, and 'deleteTask' to remove them. Always confirm with the user before deleting.",
       "4. For date & time: Use 'getTime' to get the current date or time for any location. Default is India. If the user asks for the current time or date without specifying a city, call 'getTime' with no arguments. Be specific with city names (e.g., 'London, UK') to avoid ambiguity.",
       "5. For GitHub: You have access to the user's GitHub account via a Personal Access Token. Use 'githubGetUser' to see their profile, 'githubListRepos' to list projects, 'githubGetRepo' for details, 'githubReadFile' to analyze code, and 'githubListCommits' to see recent changes or commit history. If you need to search for something across repos, use 'githubSearchCode'. You can help the user manage their repositories, analyze their code, or explain project structures.",
+      "6. For Gmail: You can access the user's emails. Use 'gmailListMessages' to see their inbox or search for emails, and 'gmailGetMessage' to read the full content of an email. You can help the user summarize threads, find specific info, or keep track of their correspondence.",
+      "7. For WhatsApp: You can send messages via Green API. Use 'whatsappSendMessage' to text the user or others from their personal account. Always verify the phone number format (country code + number, e.g., 919903149299). You can also manage contacts using 'saveContact' and 'listContacts'.",
+      "8. For WhatsApp Contact Selection: If you see a tag like '@WhatsApp:Name (Phone)' at the start of a message, it is a RECIPIENT OVERRIDE. You MUST call 'whatsappSendMessage' using that phone number for the user's message. Do not mention or include this tag in your final response to the user.",
       memoryContext
 
         ? `Use these saved user memories when relevant. Do not mention them unless it helps the answer.\n${memoryContext}`
