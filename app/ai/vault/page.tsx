@@ -63,7 +63,7 @@ export default function VaultPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0A0A0A]">
+    <div className="flex flex-col h-full">
       {/* HEADER */}
       <PageHeader
         icon={<Database />}
@@ -146,16 +146,16 @@ export default function VaultPage() {
                   className="group relative flex flex-col p-5 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-pointer overflow-hidden"
                 >
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="p-2 rounded-lg bg-white/5">
+                    <div className="p-2.5 rounded-full bg-white/5">
                       {item.type === 'note' ? (
-                        <FileText size={20} className="text-blue-400" />
+                        <FileText size={24} className="text-blue-400" />
                       ) : (
-                        <Table2 size={20} className="text-green-400" />
+                        <Table2 size={24} className="text-green-400" />
                       )}
                     </div>
                     <button
                       onClick={(e) => handleDelete(e, item._id)}
-                      className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                      className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-400/10 rounded-full opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -171,12 +171,12 @@ export default function VaultPage() {
                   {item.tags && item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-auto pt-4 border-t border-white/5">
                       {item.tags.slice(0, 3).map((tag: string, i: number) => (
-                        <span key={i} className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-white/50 border border-white/5">
+                        <span key={i} className="px-2 py-0.5 rounded-full bg-white/5 text-[10px] text-white/50 border border-white/5">
                           {tag}
                         </span>
                       ))}
                       {item.tags.length > 3 && (
-                        <span className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-white/50 border border-white/5">
+                        <span className="px-2 py-0.5 rounded-full bg-white/5 text-[10px] text-white/50 border border-white/5">
                           +{item.tags.length - 3}
                         </span>
                       )}
