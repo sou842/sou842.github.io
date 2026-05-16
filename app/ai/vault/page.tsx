@@ -19,12 +19,20 @@ export default function VaultPage() {
   const router = useRouter();
   const { setMobileSidebarOpen } = useAI();
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "note" | "spreadsheet">("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{ id?: string, type: "note" | "spreadsheet" } | null>(null);
 
-  const { data, error, isLoading, mutate } = useSWR(`/api/vault?search=${query}&type=${filterType === 'all' ? '' : filterType}`, fetcher);
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const { data, error, isLoading, mutate } = useSWR(`/api/vault?search=${debouncedQuery}&type=${filterType === 'all' ? '' : filterType}`, fetcher);
 
   const items = data?.items || [];
 

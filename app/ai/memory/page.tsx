@@ -261,7 +261,7 @@ export default function MemoryPage() {
               {categoryFilter === "all" ? "All Categories" : memoryCategories.find(c => c.id === categoryFilter)?.label}
               <ChevronDown size={14} className="opacity-40" />
             </button>
-            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-48 mt-2">
+            <ul tabIndex={0} className="dropdown-content z-10 menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-48 mt-2">
               <li>
                 <button 
                   onClick={() => setCategoryFilter("all")}

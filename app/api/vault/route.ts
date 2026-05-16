@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     const filter: any = {};
     if (type) filter.type = type;
     if (search) {
-      filter.$text = { $search: search };
+      filter.title = { $regex: search, $options: 'i' };
     }
 
     const items = await VaultItem.find(filter).sort({ updatedAt: -1 });

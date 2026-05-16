@@ -434,9 +434,9 @@ export default function TasksPage() {
                     <KanbanView
                       tasks={tasks}
                       onEdit={openEditPanel}
-                      onDelete={handleDeleteTask}
-                      onStatusChange={handleStatusChange}
                       onAddTask={openAddPanel}
+                      // onDelete={handleDeleteTask}
+                      // onStatusChange={handleStatusChange}
                     />
                   ) : (
                     <TaskTable

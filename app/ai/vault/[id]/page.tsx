@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, Save, Trash2, Database } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Database, FileText, Table2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { NoteEditor } from "../_components/note-editor";
 import { SpreadsheetEditor } from "../_components/spreadsheet-editor";
+import { PageHeader } from "../../_components/page-header";
 import { useAI } from "../../_components/ai-provider";
+import { Button } from "@/components/ui/button";
 
 const fetcher = (url: string) => fetch(url).then((res) => {
   if (!res.ok) throw new Error('Failed to fetch');
@@ -83,52 +85,44 @@ export default function VaultItemPage() {
     );
   }
 
+  const item = data?.item;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0A0A0A]">
-      {/* HEADER */}
-      <header className="sticky top-0 z-30 border-b border-white/5 bg-black/70 backdrop-blur-xl shrink-0">
-        <div className="mx-auto max-w-8xl px-5 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1">
-              <Link
-                href="/ai/vault"
-                className="size-10 rounded-xl border border-white/10 bg-white/3 flex items-center justify-center hover:bg-white/5 transition"
-              >
-                <ArrowLeft size={18} />
-              </Link>
-              
-              <div className="flex-1">
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="bg-transparent border-none text-lg font-semibold text-white outline-none w-full max-w-md placeholder:text-white/20"
-                  placeholder="Enter title..."
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleDelete}
-                className="p-2.5 rounded-xl text-white/20 hover:text-red-400 hover:bg-red-400/10 transition cursor-pointer"
-                title="Delete item"
-              >
-                <Trash2 size={18} />
-              </button>
-              
-              <button
-                onClick={handleSave}
-                disabled={isSaving || isLoading || content === null}
-                className="flex items-center gap-2 px-5 h-11 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 disabled:opacity-50 transition cursor-pointer"
-              >
-                <Save size={16} />
-                {isSaving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
+      <PageHeader
+        backHref="/ai/vault"
+        icon={item?.type === "note" ? <FileText /> : <Table2 />}
+        title={
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="bg-transparent border-none text-base font-medium text-white outline-none w-full max-w-md placeholder:text-white/20 px-0"
+            placeholder="Enter title..."
+          />
+        }
+        subtitle={item?.updatedAt ? `Last updated: ${new Date(item.updatedAt).toLocaleDateString()}` : "Untitled Item"}
+        actions={
+          <div className="flex items-center gap-1.5">
+            <Button
+              onClick={handleDelete}
+              variant="outline"
+              className="h-9 w-9 rounded-full text-white/20 hover:text-red-500 border-red-500/20 hover:bg-red-500/10 transition cursor-pointer"
+              title="Delete item"
+            >
+              <Trash2 size={16} className="text-red-400/40" />
+            </Button>
+            
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              <Save size={16} />
+              <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
+            </button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* CONTENT AREA */}
       <div className="flex-1 overflow-y-auto bg-[#070707] relative">
