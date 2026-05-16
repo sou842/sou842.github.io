@@ -9,8 +9,10 @@ import { z } from 'zod';
 import Task from '@/lib/models/Task';
 import Contact from '@/lib/models/Contact';
 import VaultItem from '@/lib/models/VaultItem';
+import ScheduleTask from '@/lib/models/ScheduleTask';
 import { getMessageText } from '@/lib/ai/message-utils';
 import { VAULT_GUIDELINES } from '@/lib/ai/vault-guidelines';
+import { cleanPhone, computeNextRunAt } from '@/lib/schedule';
 
 async function getGoogleAccessToken() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -79,6 +81,9 @@ const memoryCategorySchema = z.enum(['profile', 'preference', 'project', 'fact',
 const taskStatusSchema = z.enum(['todo', 'in-progress', 'done', 'backlog']);
 const taskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 const vaultItemTypeSchema = z.enum(['spreadsheet', 'note']);
+const scheduleStatusSchema = z.enum(['active', 'paused', 'completed', 'failed']);
+const scheduleActionTypeSchema = z.enum(['weather_report', 'reminder']);
+const scheduleTypeSchema = z.enum(['one_time', 'recurring']);
 
 const tools = {
   saveMemory: tool({
@@ -306,6 +311,61 @@ const tools = {
         const result = await Task.deleteOne({ _id: id });
         if (result.deletedCount === 0) return { success: false, error: "Task not found" };
         return { success: true, message: "Task deleted successfully" };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
+  listScheduleTasks: tool({
+    description: "List schedule tasks. Use this before claiming schedule task details or status.",
+    inputSchema: z.object({
+      status: scheduleStatusSchema.optional().describe('Filter by schedule status'),
+    }),
+    execute: async ({ status }) => {
+      try {
+        await dbConnect();
+        const filter: any = {};
+        if (status) filter.status = status;
+        const tasks = await ScheduleTask.find(filter).sort({ updatedAt: -1 }).limit(50);
+        return { success: true, tasks: JSON.parse(JSON.stringify(tasks)) };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+  }),
+
+  createScheduleTask: tool({
+    description: "Create a schedule task (one-time or recurring). Use this for reminders, hourly checks, and automations.",
+    inputSchema: z.object({
+      title: z.string().min(1).max(140),
+      actionType: scheduleActionTypeSchema,
+      payload: z.object({
+        phone: z.string(),
+        message: z.string().optional(),
+        city: z.string().optional(),
+        messagePrefix: z.string().optional(),
+      }),
+      scheduleType: scheduleTypeSchema,
+      runAt: z.string().optional(),
+      intervalMinutes: z.number().int().positive().optional(),
+      timezone: z.string().default('Asia/Kolkata'),
+      status: scheduleStatusSchema.default('active'),
+    }),
+    execute: async (data) => {
+      try {
+        await dbConnect();
+        const normalized = {
+          ...data,
+          payload: {
+            ...data.payload,
+            phone: cleanPhone(String(data.payload.phone)),
+          },
+          runAt: data.runAt ? new Date(data.runAt) : undefined,
+        };
+        const nextRunAt = computeNextRunAt(normalized as any);
+        const task = await ScheduleTask.create({ ...normalized, nextRunAt });
+        return { success: true, task: JSON.parse(JSON.stringify(task)) };
       } catch (error: any) {
         return { success: false, error: error.message };
       }
@@ -752,6 +812,7 @@ export async function POST(req: Request) {
       "1. To remember information: call 'saveMemory' when explicitly asked to remember/memorize/store facts. Pick categories carefully.",
       "2. For weather: To get weather, you need coordinates. Search memories for the user's location/city. If not found, ask the user for their location. Once you have a city name or coordinates, call 'getWeather'.",
       "3. For tasks: You can manage the user's tasks. Use 'listTasks' to see what's on their plate, 'createTask' to add new ones, 'updateTask' to change details or status, and 'deleteTask' to remove them. Always confirm with the user before deleting.",
+      "3b. For schedule tasks: Use 'createScheduleTask' and 'listScheduleTasks'. Never claim a schedule task was created unless the tool returns success=true and includes the created task id.",
       "4. For date & time: Use 'getTime' to get the current date or time for any location. Default is India. If the user asks for the current time or date without specifying a city, call 'getTime' with no arguments. Be specific with city names (e.g., 'London, UK') to avoid ambiguity.",
       "5. For GitHub: You have access to the user's GitHub account via a Personal Access Token. Use 'githubGetUser' to see their profile, 'githubListRepos' to list projects, 'githubGetRepo' for details, 'githubReadFile' to analyze code, and 'githubListCommits' to see recent changes or commit history. If you need to search for something across repos, use 'githubSearchCode'. You can help the user manage their repositories, analyze their code, or explain project structures.",
       "6. For Gmail: You can access the user's emails. Use 'gmailListMessages' to see their inbox or search for emails, and 'gmailGetMessage' to read the full content of an email. You can help the user summarize threads, find specific info, or keep track of their correspondence.",
