@@ -110,7 +110,7 @@ export function Sidebar({
           ) : (
             <>
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-500/20">
+                <div className="w-8 h-8 bg-white/95 rounded-full flex items-center justify-center text-black shrink-0 shadow-lg shadow-indigo-500/20">
                   <Bot size={18} />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -119,7 +119,7 @@ export function Sidebar({
                 </div>
               </div>
               <button 
-                className="p-1.5 text-white/30 hover:text-white hover:bg-white/5 rounded-lg transition-all md:block hidden shrink-0"
+                className="p-1.5 text-white/30 hover:text-white hover:bg-white/5 rounded-lg transition-all md:block hidden shrink-0 cursor-pointer"
                 onClick={() => setSidebarOpen(false)}
               >
                 <PanelLeftClose size={18} />
@@ -135,7 +135,7 @@ export function Sidebar({
             {!isCollapsed && <div className="px-3 py-2 text-xs font-medium text-white/20">Workspace</div>}
             <button
               onClick={handleNewChat}
-              className={`flex items-center transition-all group ${
+              className={`flex items-center transition-all group cursor-pointer ${
                 isCollapsed 
                   ? "w-10 h-10 justify-center rounded-xl bg-white/5 hover:bg-white/10" 
                   : "w-full gap-3 px-3 py-2.5 rounded-xl text-white font-medium text-sm hover:bg-white/10"

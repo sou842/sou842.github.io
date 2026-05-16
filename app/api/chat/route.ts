@@ -225,17 +225,21 @@ const tools = {
   }),
 
   listTasks: tool({
-    description: "List the user's tasks from their task manager. Can filter by status or priority. Use this when the user asks about their tasks, what they need to do, or wants a summary of their work.",
+    description: "List the user's tasks from their task manager. Can filter by status, priority, or search by title. Use this when the user asks about their tasks, what they need to do, or wants to find a specific task.",
     inputSchema: z.object({
       status: taskStatusSchema.optional().describe('Filter by status (todo, in-progress, done, backlog)'),
       priority: taskPrioritySchema.optional().describe('Filter by priority (low, medium, high, urgent)'),
+      search: z.string().optional().describe('Search for tasks with titles matching this query'),
     }),
-    execute: async ({ status, priority }) => {
+    execute: async ({ status, priority, search }) => {
       try {
         await dbConnect();
         const filter: any = {};
         if (status) filter.status = status;
         if (priority) filter.priority = priority;
+        if (search) {
+          filter.title = { $regex: search, $options: 'i' };
+        }
         const tasks = await Task.find(filter).sort({ updatedAt: -1 }).limit(50);
         return { success: true, tasks: JSON.parse(JSON.stringify(tasks)) };
       } catch (error: any) {
@@ -663,7 +667,7 @@ export async function POST(req: Request) {
       messages: modelMessages.length > 0 ? modelMessages : [{ role: 'user', content: ' ' }],
       system: systemPrompt,
       tools,
-      stopWhen: stepCountIs(2),
+      stopWhen: stepCountIs(10),
       onFinish: async ({ text, toolResults }) => {
         if (!canPersist) {
           return;

@@ -1,33 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragStartEvent,
-  DragOverEvent,
-  DragEndEvent,
-  defaultDropAnimationSideEffects,
-  useDroppable,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import React from "react";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TaskCard } from "./task-card";
 
 const COLUMNS = [
   { id: "backlog", title: "Backlog", color: "slate" },
@@ -39,96 +19,24 @@ const COLUMNS = [
 interface KanbanViewProps {
   tasks: any[];
   onEdit: (task: any) => void;
-  onDelete: (id: string) => void;
-  onStatusChange: (id: string, status: string) => void;
   onAddTask: (status: string) => void;
 }
 
-export function KanbanView({ tasks, onEdit, onDelete, onStatusChange, onAddTask }: KanbanViewProps) {
-  const [activeTask, setActiveTask] = useState<any | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 3,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const task = tasks.find((t) => String(t._id) === active.id);
-    setActiveTask(task);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id;
-    const overId = over.id;
-
-    if (activeId === overId) return;
-
-    const activeTask = tasks.find((t) => String(t._id) === activeId);
-    if (!activeTask) return;
-
-    // Check if we are dragging over a task or a column
-    const overTask = tasks.find((t) => String(t._id) === overId);
-    const overColumn = COLUMNS.find((c) => c.id === overId);
-
-    const destStatus = overTask ? overTask.status : overColumn?.id;
-
-    if (destStatus && activeTask.status !== destStatus) {
-      onStatusChange(activeTask._id, destStatus);
-    }
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveTask(null);
-  };
-
+export function KanbanView({ tasks, onEdit, onAddTask }: KanbanViewProps) {
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-start h-full">
-        {COLUMNS.map((column) => (
-          <KanbanColumn
-            key={column.id}
-            id={column.id}
-            title={column.title}
-            tasks={tasks.filter((t) => t.status === column.id)}
-            onEdit={onEdit}
-            onAddTask={() => onAddTask(column.id)}
-            color={column.color}
-          />
-        ))}
-      </div>
-
-      <DragOverlay dropAnimation={{
-        sideEffects: defaultDropAnimationSideEffects({
-          styles: {
-            active: {
-              opacity: '0.5',
-            },
-          },
-        }),
-      }}>
-        {activeTask ? (
-          <div className="w-[calc(100%-24px)] md:w-[300px]">
-             <TaskCard key={`overlay-${String(activeTask._id)}`} task={activeTask} isOverlay />
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-start h-full">
+      {COLUMNS.map((column) => (
+        <KanbanColumn
+          key={column.id}
+          id={column.id}
+          title={column.title}
+          tasks={tasks.filter((t) => t.status === column.id)}
+          onEdit={onEdit}
+          onAddTask={() => onAddTask(column.id)}
+          color={column.color}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -188,85 +96,6 @@ function KanbanColumn({ id, title, tasks, onEdit, onAddTask, color }: any) {
           <Plus size={14} className="mr-2" />
           Add task
         </Button>
-      </div>
-    </div>
-  );
-}
-
-function TaskCard({ task, onEdit, isOverlay }: any) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: String(task._id) });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-  };
-
-  if (isDragging && !isOverlay) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="h-[120px] rounded-xl bg-white/2 border border-dashed border-white/10"
-      />
-    );
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={() => onEdit?.(task)}
-      className={cn(
-        "group relative p-5 rounded-2xl bg-white/3 border border-white/10 hover:border-white/20 hover:bg-white/6 transition-all cursor-grab active:cursor-grabbing backdrop-blur-md",
-        isOverlay && "cursor-grabbing shadow-2xl scale-105 border-white/30 bg-white/8"
-      )}
-    >
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-2">
-          <h4 className="text-sm font-medium text-white capitalize group-hover:text-white/90 leading-tight">
-            {task.title}
-          </h4>
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-xs h-5 px-1.5 capitalize border-white/10 rounded-full",
-              task.priority === "urgent" && "bg-red-500/10 text-red-400 border-red-500/20",
-              task.priority === "high" && "bg-orange-500/10 text-orange-400 border-orange-500/20",
-              task.priority === "medium" && "bg-blue-500/10 text-blue-400 border-blue-500/20",
-              task.priority === "low" && "bg-slate-500/10 text-slate-400 border-slate-500/20"
-            )}
-          >
-            {task.priority}
-          </Badge>
-        </div>
-
-        {task?.description && (
-          <p className="text-xs text-white/60 line-clamp-2 leading-relaxed">
-            {task.description}
-          </p>
-        )}
-
-        <div className="flex items-center gap-3 pt-1">
-          {task?.dueDate && (
-            <div className="flex items-center gap-1.5 text-xs text-white/30">
-              <Calendar size={12} />
-              <span>{format(new Date(task.dueDate), "MMM d")}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5 text-xs text-white/40 ml-auto">
-             <Clock size={12} />
-             <span>{format(new Date(task.updatedAt || task.createdAt), "HH:mm")}</span>
-          </div>
-        </div>
       </div>
     </div>
   );

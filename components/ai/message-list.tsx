@@ -219,6 +219,32 @@ const MessageRow = React.memo(function MessageRow({
     (ti:any) => ti.state === 'result' && ti.toolName === 'getWeather' && ti.result && !('error' in ti.result)
   );
 
+  const toolInvocations = (message as any)?.toolInvocations;
+
+  const getToolLabel = (toolName: string, state: string) => {
+    const labels: Record<string, string> = {
+      getWeather: "Checking weather",
+      saveMemory: "Storing memory",
+      listTasks: "Retrieving tasks",
+      createTask: "Creating task",
+      updateTask: "Updating task",
+      deleteTask: "Deleting task",
+      getTime: "Checking time",
+      githubGetUser: "Accessing GitHub",
+      githubListRepos: "Listing repositories",
+      githubGetRepo: "Analyzing repository",
+      githubReadFile: "Reading code",
+      githubSearchCode: "Searching code",
+      githubListCommits: "Checking history",
+      gmailListMessages: "Searching emails",
+      gmailGetMessage: "Reading email",
+      whatsappSendMessage: "Sending WhatsApp",
+      saveContact: "Saving contact",
+      listContacts: "Fetching contacts",
+    };
+    return labels[toolName] || `Executing ${toolName}`;
+  };
+
   return (
     <Message
       key={message.id}
@@ -234,17 +260,51 @@ const MessageRow = React.memo(function MessageRow({
             >
               <ReasoningTrigger className="py-2 px-1 text-white/40 hover:text-white/60" />
               <ReasoningContent className="py-4 px-1 text-white/50 leading-relaxed max-w-2xl">
-                {getMessageReasoning(message) || (
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-1.5 bg-white/30 rounded-full shrink-0" />
-                      <span className="text-xs">Generating response</span>
+                <div className="flex flex-col gap-3">
+                  {/* AI Reasoning Text */}
+                  {getMessageReasoning(message) && (
+                    <div className="text-sm border-l-2 border-white/10 pl-4 py-1 italic mb-2">
+                      {getMessageReasoning(message)}
                     </div>
-                    <div className="text-xs opacity-40 ml-4">
-                      {isLastStreaming ? 'In progress' : 'Process completed'}
+                  )}
+
+                  {/* Tool Invocations */}
+                  {toolInvocations && toolInvocations.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {toolInvocations.map((ti: any, idx: number) => (
+                        <div key={ti.toolCallId || idx} className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: `${idx * 100}ms` }}>
+                          <div className="flex items-center gap-2.5">
+                            <div className={`size-1.5 rounded-full shrink-0 ${ti.state === 'result' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-blue-400 animate-pulse'}`} />
+                            <span className="text-xs font-medium tracking-tight text-white/70">
+                              {getToolLabel(ti.toolName, ti.state)}
+                            </span>
+                          </div>
+                          
+                          {/* Tool Details (Args/Result) */}
+                          <div className="text-[10px] opacity-40 ml-4 font-mono truncate max-w-md">
+                            {ti.state === 'call' ? (
+                              <span>args: {JSON.stringify(ti.args)}</span>
+                            ) : (
+                              <span className="text-green-500/60">
+                                {ti.result?.error ? `Error: ${ti.result.error}` : 'Success'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                )}
+                  ) : !getMessageReasoning(message) ? (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-1.5 bg-white/30 rounded-full shrink-0" />
+                        <span className="text-xs">Generating response</span>
+                      </div>
+                      <div className="text-xs opacity-40 ml-4">
+                        {isLastStreaming ? 'In progress' : 'Process completed'}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </ReasoningContent>
             </Reasoning>
           )}

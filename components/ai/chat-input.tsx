@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState, useEffect, useRef } from "react";
-import { CheckIcon, Globe, PlusIcon, User, Search, MessageSquare, X } from "lucide-react";
+import { CheckIcon, Globe, PlusIcon, User, Search, MessageSquare, X, BookOpenCheck } from "lucide-react";
 import { FileUIPart } from "ai";
 import { type SendChatMessage } from "@/components/ai/types";
 import {
@@ -104,6 +104,9 @@ interface ChatInputProps {
   selectedModelData: ModelItemData | undefined;
   modelSelectorOpen: boolean;
   setModelSelectorOpen: (open: boolean) => void;
+  selectedTask?: any | null;
+  setSelectedTask?: (task: any | null) => void;
+  space?: number;
 }
 
 export function ChatInput({
@@ -116,6 +119,9 @@ export function ChatInput({
   selectedModelData,
   modelSelectorOpen,
   setModelSelectorOpen,
+  selectedTask,
+  setSelectedTask,
+  space=4
 }: ChatInputProps) {
   const [contacts, setContacts] = useState<any[]>([]);
   const [showContactSelector, setShowContactSelector] = useState(false);
@@ -161,7 +167,7 @@ export function ChatInput({
   );
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 px-3 pb-6 md:px-6 md:pb-8 z-20">
+    <div className={`absolute bottom-0 left-0 right-0 z-20 p-${space}`}>
       <div className="mx-auto w-full max-w-3xl relative">
         {/* Contact Selector Dropdown */}
         {showContactSelector && (
@@ -237,6 +243,29 @@ export function ChatInput({
                     onClick={(e) => {
                       e.preventDefault();
                       setSelectedContact(null);
+                    }}
+                    className="ml-1 p-0.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Task Badge Display */}
+            {selectedTask && (
+              <div className="px-6 pt-4 flex w-full justify-start items-center">
+                <div className="flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 animate-in zoom-in-95 duration-200 max-w-[280px] overflow-hidden">
+                  <BookOpenCheck className="size-3.5 text-indigo-400 shrink-0" />
+                  <span className="text-[13px] font-medium text-white/90 leading-none truncate flex items-center gap-1 min-w-0">
+                    <span className="shrink-0">Focusing on:</span>
+                    <span className="text-white font-bold truncate">{selectedTask.title}</span>
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedTask?.(null);
                     }}
                     className="ml-1 p-0.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
                   >

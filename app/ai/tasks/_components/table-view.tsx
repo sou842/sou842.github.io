@@ -13,6 +13,7 @@ import {
   VisibilityState,
   getPaginationRowModel,
 } from "@tanstack/react-table";
+import { useDraggable } from "@dnd-kit/core";
 import {
   Table,
   TableBody,
@@ -254,17 +255,13 @@ export function TaskTable({ tasks, onEdit, onDelete, onStatusChange }: TaskTable
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-white/[0.04] border-white/5 transition-colors"
-                >
+                <DraggableTableRow key={row.id} row={row}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="py-4 px-6">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
-                </TableRow>
+                </DraggableTableRow>
               ))
             ) : (
               <TableRow>
@@ -325,5 +322,31 @@ export function TaskTable({ tasks, onEdit, onDelete, onStatusChange }: TaskTable
         </div>
       </div>
     </div>
+  );
+}
+
+function DraggableTableRow({ row, children }: { row: any, children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: String(row.original._id),
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      data-state={row.getIsSelected() && "selected"}
+      className={cn(
+        "hover:bg-white/[0.04] border-white/5 transition-colors cursor-grab active:cursor-grabbing",
+        isDragging && "opacity-50"
+      )}
+    >
+      {children}
+    </TableRow>
   );
 }
