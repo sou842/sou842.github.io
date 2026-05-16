@@ -3,13 +3,15 @@
 import React from "react";
 import useSWR, { mutate } from "swr";
 import { format } from "date-fns";
-import { Bot, Menu, Pause, Play, Plus, Trash2, Zap } from "lucide-react";
+import { Bot, Calendar, CalendarDays, Menu, Pause, Play, Plus, Trash2, Zap } from "lucide-react";
 import { useAI } from "../_components/ai-provider";
+import { PageHeader } from "../_components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -109,24 +111,19 @@ export default function SchedulePage() {
   return (
     <div className="flex h-screen relative overflow-hidden bg-zinc-950">
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <header className="w-full h-16 shrink-0 border-b border-white/5 bg-black/70 backdrop-blur-xl z-30">
-          <div className="mx-auto max-w-8xl px-5 py-4 h-full">
-            <div className="flex items-center justify-between gap-4 h-full">
-              <div className="flex items-center gap-3">
-                <button
-                  className="md:hidden size-10 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-white"
-                  onClick={() => setMobileSidebarOpen(true)}
-                >
-                  <Menu size={16} />
-                </button>
-                <div>
-                  <h1 className="text-base font-medium tracking-tight text-white">Schedule</h1>
-                  <p className="text-xs text-white/35">Manage recurring and one-time automations</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <PageHeader
+          icon={<Calendar />}
+          title="Schedule"
+          subtitle="Manage recurring and one-time automations"
+          actions={
+            <Link href="/ai/schedule/calender">
+              <Button variant="outline" className="rounded-full border-white/20 text-white/80">
+                <CalendarDays className="size-4" />
+                Calendar View
+              </Button>
+            </Link>
+          }
+        />
 
         <div className="flex-1 overflow-y-auto scrollbar-hide relative z-10">
           <div className="mx-auto w-full max-w-7xl px-5 py-8 space-y-6">

@@ -165,7 +165,7 @@ export function Sidebar({
               label="Integrations"
             />
             <SidebarNavItem
-              active={pathname === "/ai/schedule"}
+              active={pathname?.startsWith("/ai/schedule")}
               href="/ai/schedule"
               icon={<Calendar size={16} />}
               isCollapsed={isCollapsed}
