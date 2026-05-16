@@ -45,8 +45,8 @@ export default function VaultItemPage() {
   const chat = useChat({
     id: `vault-item-${id}`,
     initialMessages: [],
-    onFinish: () => {
-      // Potentially refresh data if AI edited the item (though tools are better for that)
+    onFinish: ({ message }) => {
+      mutate();
     },
     onError: (err) => {
       console.error("Chat error:", err);
@@ -226,14 +226,14 @@ Prioritize actions and responses related to this item.`,
             <div className="h-full w-full">
               {data.item.type === "note" ? (
                 <NoteEditor 
-                  key={id}
-                  initialData={content} 
+                  key={`${id}-${data.item.updatedAt}`}
+                  initialData={data.item.content} 
                   onChange={setContent} 
                 />
               ) : (
                 <SpreadsheetEditor 
-                  key={id}
-                  initialData={content} 
+                  key={`${id}-${data.item.updatedAt}`}
+                  initialData={data.item.content} 
                   onChange={setContent} 
                 />
               )}
