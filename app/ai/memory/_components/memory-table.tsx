@@ -28,6 +28,7 @@ import {
   Settings2, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
   Check,
   X,
   Pencil,
@@ -270,19 +271,32 @@ export function MemoryTable({ data, onEdit, onDelete, onToggle }: MemoryTablePro
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <p className="text-[11px] text-white/30 uppercase tracking-widest">Rows per page</p>
-            <select
-              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white outline-none focus:border-white/20 transition-colors"
-              value={table.getState().pagination.pageSize}
-              onChange={(e) => {
-                table.setPageSize(Number(e.target.value));
-              }}
-            >
-              {[10, 20, 30, 50].map((pageSize) => (
-                <option key={pageSize} value={pageSize} className="bg-black">
-                  {pageSize}
-                </option>
-              ))}
-            </select>
+            <div className="dropdown dropdown-top dropdown-end">
+              <button
+                tabIndex={0}
+                className="h-8 px-3 rounded-full border border-white/10 bg-white/5 text-[11px] text-white/60 hover:text-white flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {table.getState().pagination.pageSize}
+                <ChevronDown size={12} className="opacity-40" />
+              </button>
+              <ul tabIndex={0} className="dropdown-content z-10 menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-24 mb-2">
+                {[10, 20, 30, 50].map((pageSize) => (
+                  <li key={pageSize}>
+                    <button
+                      onClick={() => table.setPageSize(pageSize)}
+                      className={cn(
+                        "text-[11px] py-2 justify-center",
+                        table.getState().pagination.pageSize === pageSize
+                          ? "bg-white/10 text-white"
+                          : "text-white/40 hover:bg-white/5"
+                      )}
+                    >
+                      {pageSize}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <div className="text-[11px] text-white/30 uppercase tracking-widest">
             Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
@@ -290,7 +304,7 @@ export function MemoryTable({ data, onEdit, onDelete, onToggle }: MemoryTablePro
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              className="h-8 w-8 p-0 rounded-lg bg-white/5 border-white/10 hover:bg-white/10 hover:text-white disabled:opacity-20"
+              className="h-8 w-8 p-0 rounded-full bg-white/5 border-white/10 hover:bg-white/10 hover:text-white disabled:opacity-20"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
@@ -298,7 +312,7 @@ export function MemoryTable({ data, onEdit, onDelete, onToggle }: MemoryTablePro
             </Button>
             <Button
               variant="outline"
-              className="h-8 w-8 p-0 rounded-lg bg-white/5 border-white/10 hover:bg-white/10 hover:text-white disabled:opacity-20"
+              className="h-8 w-8 p-0 rounded-full bg-white/5 border-white/10 hover:bg-white/10 hover:text-white disabled:opacity-20"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >

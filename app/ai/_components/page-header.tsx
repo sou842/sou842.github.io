@@ -60,13 +60,15 @@ export function PageHeader({ icon, title, subtitle, children, actions, backHref 
           </div>
 
 
-          <div className="hidden md:flex items-center flex-1 justify-center max-w-xl mx-4">
+          {children && <div className="w-fit hidden md:flex items-center flex-1 justify-end max-w-xl mx-4">
             {children}
           </div>
+          }
 
-          <div className="flex items-center gap-2 shrink-0">
+          {actions && <div className="flex items-center gap-2 shrink-0">
             {actions}
           </div>
+          }
         </div>
       </div>
     </header>

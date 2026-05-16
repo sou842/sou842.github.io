@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { MoreHorizontal, ArrowUpDown, Settings2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { MoreHorizontal, ArrowUpDown, Settings2, Search, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,7 +38,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
 
 interface TaskTableProps {
   tasks: any[];
@@ -280,19 +280,32 @@ export function TaskTable({ tasks, onEdit, onDelete, onStatusChange }: TaskTable
           <div className="flex items-center gap-6 lg:gap-8">
             <div className="flex items-center gap-2">
               <p className="text-xs font-medium text-white/40">Rows per page</p>
-              <select
-                className="bg-white/5 border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/20"
-                value={table.getState().pagination.pageSize}
-                onChange={(e) => {
-                  table.setPageSize(Number(e.target.value));
-                }}
-              >
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <option key={pageSize} value={pageSize} className="bg-zinc-900">
-                    {pageSize}
-                  </option>
-                ))}
-              </select>
+              <div className="dropdown dropdown-top dropdown-end">
+                <button
+                  tabIndex={0}
+                  className="h-8 px-3 rounded-full border border-white/10 bg-white/5 text-[11px] text-white/60 hover:text-white flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  {table.getState().pagination.pageSize}
+                  <ChevronDown size={12} className="opacity-40" />
+                </button>
+                <ul tabIndex={0} className="dropdown-content z-10 menu p-2 shadow-2xl bg-[#0F0F0F] border border-white/10 rounded-xl w-24 mb-2">
+                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                    <li key={pageSize}>
+                      <button
+                        onClick={() => table.setPageSize(pageSize)}
+                        className={cn(
+                          "text-[11px] py-2 justify-center",
+                          table.getState().pagination.pageSize === pageSize
+                            ? "bg-white/10 text-white"
+                            : "text-white/40 hover:bg-white/5"
+                        )}
+                      >
+                        {pageSize}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
             <div className="flex w-[100px] items-center justify-center text-xs font-medium text-white/40">
               Page {table.getState().pagination.pageIndex + 1} of{" "}

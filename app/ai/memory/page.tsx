@@ -234,16 +234,8 @@ export default function MemoryPage() {
         icon={<Brain />}
         title="Memory"
         subtitle="Manage what Jarvis remembers across conversations"
-        actions={
-          <Link
-            href="/ai"
-            className="h-9 px-4 rounded-full border border-white/10 bg-white/[0.03] text-sm text-white/60 hover:text-white hover:bg-white/[0.05] transition flex items-center shrink-0"
-          >
-            Back to Chat
-          </Link>
-        }
       >
-        <div className="flex items-center gap-3 w-full">
+        <div className="flex items-center justify-end gap-3 w-full">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-white/25" />
             <input
