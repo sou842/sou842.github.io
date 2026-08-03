@@ -8,7 +8,7 @@ export default function LandingLayout({
   return (
     <>
       {children}
-      <AIButton />
+      {/* <AIButton /> */}
     </>
   );
 }
